@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="inquiry">
+	<insert id="insertInquiry" parameterType="com.sp.customer.inquiry.Inquiry">
+	  INSERT INTO inquiry(num, type, parent, state, userId, 
+          phone, phoneRecv, email, emailRecv,
+          category, subject, content) VALUES
+         (inquiry_seq.NEXTVAL, #{type}, #{parent}, #{state}, #{userId},
+           #{phone, jdbcType=VARCHAR}, #{phoneRecv},
+           #{email, jdbcType=VARCHAR}, #{emailRecv},
+           #{category}, #{subject}, #{content}
+	     )
+	</insert>
+
+	<sql id="where-list">
+	  <if test="condition=='all' ">
+	      (INSTR(subject, #{keyword}) &gt; 0
+	          OR DBMS_LOB.INSTR(content, #{keyword}) &gt; 0)
+	  </if>
+	  <if test="condition=='subject'">
+	       INSTR(subject, #{keyword}) &gt; 0
+	  </if>
+	  <if test="condition=='content'">
+	      DBMS_LOB.INSTR(content, #{keyword}) &gt; 0 
+	  </if>
+	  <if test="condition=='userName'">
+	      userName=#{keyword}
+	  </if>
+	  <if test="condition=='created'">
+	      (TO_CHAR(i.created, 'YYYY-MM-DD') = #{keyword}
+            OR TO_CHAR(i.created, 'YYYYMMDD') = #{keyword})
+	  </if>
+	</sql>
+
+	<!-- 글개수 -->
+	<select id="dataCount" parameterType="map" resultType="Integer">
+	  SELECT NVL(COUNT(*), 0)
+	  FROM inquiry i
+	  JOIN member1 m ON i.userId=m.userId
+	     <where>
+	     	<if test="userId!=null and userId!='' and userId!='admin' ">
+	     	    i.userId = #{userId} AND
+	     	</if>
+	     	<if test="keyword!=null and keyword!='' ">
+	     	    <include refid="where-list"/> AND
+	     	</if>
+	        parent = 0
+	     </where>   
+	</select>
+
+	<!-- 글리스트 -->
+    <select id="listInquiry" parameterType="map"
+                resultType="com.sp.customer.inquiry.Inquiry">
+        SELECT * FROM (
+            SELECT ROWNUM rnum, tb.* FROM (
+                SELECT num, i.userId, userName, state, category, subject,
+			         TO_CHAR(created, 'YYYY-MM-DD') created
+                FROM inquiry i
+                JOIN member1 m ON i.userId=m.userId
+                <where>
+                    <if test="userId!=null and userId!='' and userId!='admin' ">
+                        i.userId = #{userId} AND
+                    </if>
+                    <if test="keyword != null and keyword != ''">
+                        <include refid="where-list"/> AND
+                    </if>
+                    parent = 0
+                </where>
+                ORDER BY num DESC
+    <![CDATA[
+            ) tb WHERE ROWNUM <= #{end}
+        ) WHERE rnum >= #{start}
+    ]]>
+    </select>
+    
+    <!-- 관련글 --> 
+	<select id="relationInquiry" resultType="com.sp.customer.inquiry.Inquiry" parameterType="Integer">
+		SELECT num, type, parent, state, i.userId, userName,
+		            phone, phoneRecv, email, emailRecv, 
+		            category, subject, content, created
+		FROM inquiry i
+		JOIN member1 m ON i.userId=m.userId
+		WHERE num IN 
+               (SELECT num FROM inquiry START WITH  num = #{num}
+	            CONNECT BY PRIOR num = parent)
+	     ORDER BY num ASC
+	</select>
+    
+	<!-- 글보기 -->
+	<select id="readInquiry" resultType="com.sp.customer.inquiry.Inquiry" parameterType="Integer">
+		SELECT num, type, parent, state, i.userId, userName,
+		            phone, phoneRecv, email, emailRecv, 
+		            category, subject, content, created
+		FROM inquiry i
+		JOIN member1 m ON i.userId=m.userId
+		WHERE num = #{num}
+	</select>
+
+     <update id="updateInquiryState" parameterType="map">
+         UPDATE inquiry SET state=#{state}
+                    WHERE num = #{num}
+      </update>
+
+     <update id="updateInquiry" parameterType="com.sp.customer.inquiry.Inquiry">
+         UPDATE inquiry SET type=#{type}, parent=#{parent}, state=#{state},
+                      phone=#{phone, jdbcType=VARCHAR}, phoneRecv=#{phoneRecv}
+                      email=#{email, jdbcType=VARCHAR}, emailRecv=#{emailRecv}
+                      category=#{category}, subject=#{subject}, content=#{content}
+                    WHERE num = #{num}
+      </update>
+      
+      <!-- 삭제 -->
+      <delete id="deleteInquiry" parameterType="Integer">
+            DELETE FROM inquiry WHERE num IN 
+               (SELECT num FROM inquiry START WITH  num = #{num}
+	            CONNECT BY PRIOR num = parent)
+      </delete>
+
+</mapper>

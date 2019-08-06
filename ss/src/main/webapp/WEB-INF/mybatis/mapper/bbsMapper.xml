@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="bbs">
+	<insert id="insertBoard" parameterType="com.sp.bbs.Board">
+	  INSERT INTO bbs(num, userId, subject, content,
+	          saveFilename, originalFilename) VALUES
+	         (bbs_seq.NEXTVAL, #{userId}, #{subject}, #{content},
+	           #{saveFilename, jdbcType=VARCHAR}, 
+	           #{originalFilename, jdbcType=VARCHAR}
+	         )
+	</insert>
+
+	<!--
+	  * ${} 는 테이블명 이나 컬럼명이 동적일때 테이블명 또는 컬럼명에 사용하고,
+	        값부분은 반드시 #{} 로 사용하며,
+        #{} 는 ? 로 치환되고 쿼리는 PreparedStatement 객체로 실행한다.
+    -->
+	<!--
+       * INSTR() 함수 대신 LIKE 를 사용하는 경우
+          subject LIKE '%' || #{keyword} || '%'
+       * CLOB인 경우 검색(LIKE 사용하지 말것)
+          DBMS_LOB.INSTR(content, #{keyword}) &gt; 0 
+	-->	
+	<sql id="where-list">
+		<choose>
+			<when test="condition == 'all' ">
+			   (INSTR(subject, #{keyword}) &gt; 0
+		          OR DBMS_LOB.INSTR(content, #{keyword}) &gt; 0)
+			</when>
+			<when test="condition == 'created' ">
+			   (TO_CHAR(created, 'YYYYMMDD') = #{keyword}
+		          OR TO_CHAR(created, 'YYYY-MM-DD') = #{keyword})
+			</when>
+			<when test="condition == 'content'">
+			    DBMS_LOB.INSTR(content, #{keyword}) &gt; 0
+			</when>
+			<otherwise>
+			    INSTR(${condition}, #{keyword}) &gt; 0
+			</otherwise>
+		</choose>
+	</sql>
+
+	<!-- 글개수 -->
+	<select id="dataCount" parameterType="map" resultType="Integer">
+	     SELECT NVL(COUNT(*), 0)
+	     FROM bbs b
+	     JOIN member1 m ON b.userId=m.userId
+	     <where>
+	     	<if test="keyword!=null and keyword!='' ">
+	     	    <include refid="where-list"/>
+	     	</if>
+	     </where>   
+	</select>
+
+	<!-- 글리스트 -->
+	<select id="listBoard" parameterType="map"
+	            resultType="com.sp.bbs.Board">
+		SELECT * FROM (
+		    SELECT ROWNUM rnum, tb.* FROM (
+			     SELECT b.num, b.userId, userName, subject
+			           ,TO_CHAR(b.created, 'YYYY-MM-DD') created
+					   ,hitCount, saveFilename
+					   ,NVL(replyCount, 0) replyCount
+			        FROM bbs b
+			        JOIN member1 m ON b.userId=m.userId
+					LEFT OUTER JOIN (
+					    SELECT num, COUNT(*) replyCount FROM bbsReply
+					    WHERE answer = 0
+					    GROUP BY num
+					) c ON b.num = c.num
+                    <where>
+                         <if test="keyword != null and keyword != ''">
+			                  <include refid="where-list"/>
+		                 </if>
+	                </where>
+	                ORDER BY num DESC
+	<![CDATA[
+	        ) tb WHERE ROWNUM <= #{end}
+	    ) WHERE rnum >= #{start}
+	]]>
+	</select>
+
+	<!-- 글보기 -->
+	<select id="readBoard" resultType="com.sp.bbs.Board" parameterType="Integer">
+		SELECT b.num, b.userId, userName, subject, content
+				   ,hitCount, b.created,  saveFilename, originalFilename
+				   ,NVL(boardLikeCount, 0) boardLikeCount
+		FROM bbs b
+		JOIN member1 m ON b.userId=m.userId
+		LEFT OUTER JOIN (
+				SELECT num, COUNT(*) boardLikeCount FROM bbsLike
+				GROUP BY num
+		) bc ON b.num = bc.num
+		WHERE b.num = #{num}
+	</select>
+	
+	<!-- 조회수 증가 -->
+	<update id="updateHitCount" parameterType="Integer">
+		UPDATE bbs SET hitCount=hitCount+1 WHERE num = #{num}
+	</update>
+	
+	<!-- AND 가 필요 없는 경우 자동으로 제거 됨 -->
+	<!-- 이전글 -->
+	<select id="preReadBoard" resultType="com.sp.bbs.Board" 
+				parameterType="map">
+		SELECT tb.* FROM (
+			SELECT num, subject
+			      FROM bbs b
+			      JOIN member1 m ON b.userId=m.userId
+                    <where>
+                         <if test="keyword != null and keyword != '' ">
+			                  <include refid="where-list"/>
+		                 </if>
+		                 AND (num &gt; #{num})
+	                </where>
+				ORDER BY num ASC
+			) tb WHERE ROWNUM=1
+	</select>
+
+	<!-- 다음글 -->
+	<select id="nextReadBoard" resultType="com.sp.bbs.Board" 
+				parameterType="map">
+		SELECT tb.* FROM (
+			SELECT num, subject
+			       FROM bbs b
+			       JOIN member1 m ON b.userId=m.userId
+                    <where>
+                         <if test="keyword != null and keyword != '' ">
+			                  <include refid="where-list"/>
+		                 </if>
+		                 AND (num &lt; #{num})
+	                </where>
+				ORDER BY num DESC
+			) tb WHERE ROWNUM=1
+	</select>
+
+     <!-- 수정 -->
+     <update id="updateBoard" parameterType="com.sp.bbs.Board">
+         UPDATE bbs SET subject=#{subject}, content=#{content}
+                    ,saveFilename=#{saveFilename, jdbcType=VARCHAR}
+                    ,originalFilename=#{originalFilename, jdbcType=VARCHAR}
+                    WHERE num = #{num}
+      </update>
+      
+      <!-- 삭제 -->
+      <delete id="deleteBoard" parameterType="Integer">
+            DELETE FROM bbs WHERE num = #{num}
+      </delete>
+      
+      <!-- 게시 글 좋아요  추가 -->
+      <insert id="insertBoardLike" parameterType="map">
+      		INSERT INTO bbsLike(num, userId) VALUES (#{num}, #{userId})
+      </insert>
+      
+      <!-- 게시글 좋아요 개수 -->
+      <select id="boardLikeCount" parameterType="Integer" resultType="Integer">
+      		SELECT COUNT(*) FROM bbsLike WHERE num=#{num}
+      </select>
+      
+      <!-- 댓글 -->
+      <insert id="insertReply" parameterType="com.sp.bbs.Reply">
+      	INSERT INTO bbsReply(replyNum, num, userId, content, answer)
+      	   VALUES (bbsReply_seq.NEXTVAL, #{num}, #{userId}, #{content}, #{answer})
+      </insert>
+
+	 <select id="replyCount" parameterType="map" resultType="Integer">
+	 		SELECT NVL(COUNT(*), 0) FROM bbsReply
+	 		WHERE num=#{num}  AND answer=0
+	 </select>
+
+	<!-- 댓글리스트 -->
+	<select id="listReply" parameterType="map" resultType="com.sp.bbs.Reply">
+		SELECT * FROM (
+			SELECT ROWNUM rnum, tb.* FROM (
+				SELECT r.replyNum, r.userId, userName, num, content, r.created
+				            ,NVL(answerCount, 0) answerCount
+				            ,NVL(likeCount, 0) likeCount
+				            ,NVL(disLikeCount, 0) disLikeCount
+				FROM bbsReply r
+				JOIN member1 m ON r.userId = m.userId
+				LEFT OUTER JOIN (
+				     SELECT answer, COUNT(*) answerCount
+				     FROM bbsReply WHERE answer!=0 GROUP BY answer
+				) a ON r.replyNum = a.answer
+				LEFT OUTER JOIN (
+				     SELECT replyNum, COUNT(DECODE(replyLike, 1, 1)) likeCount
+				                 ,COUNT(DECODE(replyLike, 0, 1)) disLikeCount
+				     FROM bbsReplyLike GROUP BY replyNum
+				) c ON r.replyNum = c.replyNum
+				WHERE num=#{num}  AND r.answer=0
+				ORDER BY r.replyNum DESC
+<![CDATA[				
+			) tb WHERE ROWNUM <= #{end}
+		) WHERE rnum >= #{start}
+]]>		
+	</select>
+	
+	<!-- 댓글 및 답글삭제 -->
+	<delete id="deleteReply" parameterType="map">
+		DELETE bbsReply WHERE 
+		<if test="mode=='reply' ">
+			replyNum IN (
+			     SELECT replyNum FROM bbsReply
+			          START WITH replyNum=#{replyNum}
+			          CONNECT BY PRIOR replyNum = answer         
+			)
+		</if>
+		<if test="mode=='answer' ">
+			replyNum = #{replyNum}
+		</if>
+	</delete>
+	
+	<!-- 댓글의 답글 리스트 -->
+	<select id="listReplyAnswer" parameterType="Integer"
+	            resultType="com.sp.bbs.Reply">
+	   SELECT replyNum, num, r.userId, userName, content, created, answer
+	   FROM bbsReply r
+	   JOIN member1 m ON r.userId = m.userId
+	   WHERE answer = #{answer}
+	   ORDER BY replyNum DESC
+	</select>
+	
+	<!-- 댓글의 답글 개수 -->
+	<select id="replyAnswerCount" resultType="Integer"
+	            parameterType="Integer">
+	 		SELECT NVL(COUNT(*), 0)
+	 		FROM bbsReply WHERE answer = #{answer}
+	 </select>
+	
+	<!-- 좋아요/싫어요 추가 -->
+	<insert id="insertReplyLike" parameterType="map">
+		INSERT INTO bbsReplyLike(replyNum, userId, replyLike)
+		        VALUES (#{replyNum}, #{userId}, #{replyLike})
+	</insert>
+	
+	<!-- 좋아요/싫어요 개수 -->
+	<select id="replyLikeCount" parameterType="map" resultType="map">
+	     SELECT COUNT(DECODE(replyLike, 1, 1)) likeCount
+			          ,COUNT(DECODE(replyLike, 0, 1)) disLikeCount
+				     FROM bbsReplyLike WHERE replyNum = #{replyNum}
+	</select>
+
+</mapper>

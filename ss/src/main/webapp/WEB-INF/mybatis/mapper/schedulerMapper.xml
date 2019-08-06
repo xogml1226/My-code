@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="scheduler">
+
+<!-- resourceGroup 테이블 -->
+	<insert id="insertResourceGroup" parameterType="com.sp.scheduler.Resource">
+	     INSERT INTO resourceGroup(
+		           groupNum, groupName) 
+		      VALUES(resourceGroup_seq.NEXTVAL, #{groupName})
+	</insert>
+	
+	<update id="updateResourceGroup" parameterType="com.sp.scheduler.Resource">
+	     UPDATE resourceGroup SET groupName = #{groupName} 
+		      WHERE groupNum = #{groupNum}
+	</update>
+	
+	<delete id="deleteResourceGroup" parameterType="Integer">
+	     DELETE FROM resourceGroup  
+		      WHERE groupNum = #{groupNum}
+	</delete>
+	
+	<select id="readResourceGroup" parameterType="Integer"
+	           resultType="com.sp.scheduler.Resource">
+	     SELECT groupNum, groupName
+	     FROM resourceGroup
+	     WHERE groupNum = #{groupNum}
+    </select>	
+	
+	<select id="listResourceGroup" resultType="com.sp.scheduler.Resource">
+		SELECT groupNum, groupName FROM resourceGroup
+	</select>
+
+
+<!-- resourceList 테이블 -->
+	<insert id="insertResourceList" parameterType="com.sp.scheduler.Resource">
+	     INSERT INTO resourceList(
+		           resourceNum, groupNum, resourceName,
+		           color, occupancy) 
+		      VALUES(resourceList_seq.NEXTVAL, #{groupNum},
+		            #{resourceName}, #{color}, #{occupancy})
+	</insert>
+	
+	<update id="updateResourceList" parameterType="com.sp.scheduler.Resource">
+	     UPDATE resourceList SET groupNum = #{groupNum},
+	          resourceName = #{resourceName},
+	          color = #{color}, occupancy = #{occupancy}
+		      WHERE resourceNum = #{resourceNum}
+	</update>
+	
+	<delete id="deleteResourceList" parameterType="Integer">
+	     DELETE FROM resourceList  
+		      WHERE resourceNum = #{resourceNum}
+	</delete>
+	
+	<select id="readResourceList" parameterType="Integer"
+	           resultType="com.sp.scheduler.Resource">
+	     SELECT resourceNum, groupNum, resourceName,
+		           color, occupancy
+		      FROM resourceList
+	          WHERE resourceNum = #{resourceNum}
+    </select>	
+	
+	<select id="listResourceList" resultType="com.sp.scheduler.ResourceJSON">
+		SELECT resourceNum id, rl.groupNum, groupName, resourceName title,
+		           color eventColor, occupancy
+        FROM resourceList rl
+        JOIN resourceGroup rg ON rl.groupNum = rg.groupNum
+        ORDER BY rl.groupNum, resourceNum
+	</select>
+
+	<select id="listResourceList2" resultType="com.sp.scheduler.Resource">
+		SELECT resourceNum, resourceName, occupancy
+        FROM resourceList
+        WHERE groupNum=#{groupNum}
+        ORDER BY resourceNum
+	</select>
+
+<!-- resourceScheduler 테이블 -->
+	<insert id="insertResourceScheduler" parameterType="com.sp.scheduler.Resource">
+	     INSERT INTO resourceScheduler(
+		           num, resourceNum, userId, title, startDay,
+		           endDay, startTime, endTime, inwon) 
+		      VALUES(resourceScheduler_seq.NEXTVAL,
+		          #{resourceNum}, #{userId}, #{title}, 
+		          #{startDay}, #{endDay},
+		          #{startTime, jdbcType=VARCHAR},
+		          #{endTime, jdbcType=VARCHAR}, #{inwon})
+	</insert>
+	
+	<update id="updateResourceScheduler" parameterType="com.sp.scheduler.Resource">
+	     UPDATE resourceScheduler SET resourceNum=#{resourceNum},
+	              title=#{title}, startDay=#{startDay}, 
+	              endDay=#{endDay}, 
+	              startTime=#{startTime, jdbcType=VARCHAR},
+	              endTime=#{endTime, jdbcType=VARCHAR},
+	              inwon=#{inwon}
+		      WHERE num = #{num} AND userId = #{userId}
+		          
+	</update>
+	
+	<delete id="deleteResourceScheduler" parameterType="map">
+	     DELETE FROM resourceScheduler  
+		      WHERE num = #{num}
+		      <if test="userId!='admin'">
+		         AND userId = #{userId}
+		      </if>
+		      
+	</delete>
+	
+	<select id="readResourceScheduler" parameterType="Integer"
+	           resultType="com.sp.scheduler.Resource">
+	     SELECT num, resourceNum, r.userId, userName, title, startDay,
+		           endDay, startTime, endTime, inwon, created
+		      FROM resourceScheduler r
+		      JOIN member1 m ON r.userId=m.userId
+	          WHERE num = #{num}
+    </select>	
+	
+	<select id="listResourceScheduler" resultType="com.sp.scheduler.ResourceJSON"
+	            parameterType="map">
+		SELECT num id, groupName, rs.resourceNum resourceId, title, 
+		    NVL2(startTime, startDay||'T'||startTime, startDay) "start",
+		    NVL2(endTime, endDay||'T'||endTime, endDay) "end",
+		    startDay, startTime, endDay, endTime, 
+		    rs.userId, userName, occupancy, resourceName, rl.groupNum, inwon
+        FROM resourceScheduler rs
+        JOIN resourceList rl ON rs.resourceNum = rl.resourceNum
+        JOIN resourceGroup rg ON rl.groupNum = rg.groupNum
+        JOIN member1 m ON rs.userId = m.userId
+        WHERE TO_DATE(startDay, 'YYYY-MM-DD') &gt;= #{start}
+           AND TO_DATE(endDay, 'YYYY-MM-DD') &lt;= #{end}
+        ORDER BY groupNum, resourceId, num
+	</select>
+</mapper>

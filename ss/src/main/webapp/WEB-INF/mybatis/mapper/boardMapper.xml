@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="board">
+	
+	<select id="seq" resultType="Integer">
+		SELECT board_seq.NEXTVAL  FROM dual
+	</select>
+	
+	<insert id="insertBoard" parameterType="com.sp.board.Board">
+		INSERT INTO board(boardNum, userId, subject, content, groupNum, 
+		                              depth, orderNo, parent)
+		        VALUES (#{boardNum}, #{userId}, #{subject}, #{content},
+		                #{groupNum}, #{depth}, #{orderNo}, #{parent}) 
+	</insert>
+	
+	<sql id="where-list">
+	   <if test="condition=='all' ">
+			(INSTR(subject, #{keyword}) &gt; 0
+		          OR DBMS_LOB.INSTR(content, #{keyword}) &gt; 0)
+	   </if>
+	   <if test="condition=='subject' ">
+	        INSTR(subject, #{keyword}) &gt; 0
+	   </if>
+	   <if test="condition=='content' ">
+	        DBMS_LOB.INSTR(content, #{keyword}) &gt; 0
+	   </if>
+	   <if test="condition=='userName' ">
+	        userName=#{keyword}
+	   </if>
+	   <if test="condition=='created' ">
+	        (TO_CHAR(b.created, 'YYYY-MM-DD') = #{keyword}
+	          OR TO_CHAR(b.created, 'YYYYMMDD') = #{keyword})
+	   </if>
+	</sql>
+	
+	<select id="dataCount" resultType="Integer" parameterType="map">
+	  SELECT NVL(COUNT(*), 0) 
+      FROM board b
+      JOIN member1 m ON b.userId=m.userId
+	  <where>
+	  	<if test="keyword!=null and keyword != '' ">
+	  	      <include refid="where-list"/>
+	  	</if>
+	  </where>
+	</select>
+	
+	<select id="listBoard" parameterType="map"
+	            resultType="com.sp.board.Board">
+			SELECT * FROM (
+			    SELECT ROWNUM rnum, tb.* FROM (
+				     SELECT boardNum, userName, b.userId, subject, 
+	                      created, 
+	                      hitCount, groupNum, orderNo, depth
+				        FROM board b
+				        JOIN member1 m ON b.userId=m.userId
+	                    <where>
+	                         <if test="keyword != null and keyword != ''">
+				                  <include refid="where-list"/>
+			                 </if>
+		                </where>
+		                ORDER BY groupNum DESC, orderNo ASC
+		<![CDATA[
+		        ) tb WHERE ROWNUM <= #{end}
+		    ) WHERE rnum >= #{start}
+		]]>
+	</select>
+	
+	<select id="readBoard" parameterType="Integer" resultType="com.sp.board.Board">
+		SELECT boardNum, b.userId, userName, subject, content, groupNum, 
+                       depth, orderNo, parent, created, hitCount
+        FROM board b
+        JOIN  member1 m ON b.userId = m.userId
+        WHERE boardNum = #{boardNum}                       
+	</select>
+	
+	<update id="updateHitCount" parameterType="Integer">
+		UPDATE board SET hitCount=hitCount+1 WHERE boardNum = #{boardNum}
+	</update>
+	
+	<select id="preReadBoard" parameterType="map" resultType="com.sp.board.Board">
+	SELECT * FROM (
+		SELECT boardNum, subject FROM board b
+		JOIN member1 m ON b.userId = m.userId
+		<where>
+           <if test="keyword != null and keyword != ''">
+           		<include refid="where-list"/>
+            </if>
+			AND ((groupNum = #{groupNum} AND orderNo &lt; #{orderNo})
+			OR (groupNum &gt; #{groupNum} ))
+		</where>
+		ORDER BY groupNum ASC, orderNo DESC
+	) WHERE ROWNUM=1
+	</select>
+	
+	<select id="nextReadBoard" parameterType="map" resultType="com.sp.board.Board">
+	SELECT * FROM (
+		SELECT boardNum, subject FROM board b
+		JOIN member1 m ON b.userId = m.userId
+		<where>
+           <if test="keyword != null and keyword != ''">
+           		<include refid="where-list"/>
+            </if>
+			AND ((groupNum = #{groupNum} AND orderNo &gt; #{orderNo})
+			OR (groupNum &lt; #{groupNum} ))
+		</where>
+		ORDER BY groupNum DESC, orderNo ASC
+	) WHERE ROWNUM=1
+	</select>
+	
+	<update id="updateOrderNo" parameterType="map">
+		UPDATE board SET orderNo=orderNo+1
+		       WHERE groupNum=#{groupNum} AND orderNo &gt; #{orderNo}
+	</update>
+	
+	<update id="updateBoard" parameterType="com.sp.board.Board">
+		UPDATE board SET subject=#{subject}, content=#{content}
+		    WHERE boardNum = #{boardNum} AND userId = #{userId}
+	</update>
+	
+	<delete id="deleteBoard" parameterType="map">
+		DELETE FROM board WHERE boardNum IN
+		   (SELECT boardNum FROM board START WITH boardNum = #{boardNum}
+		             CONNECT BY PRIOR boardNum = parent)
+	</delete>
+	
+	<select id="listArticleBoard" parameterType="Integer"
+	            resultType="com.sp.board.Board">
+	       SELECT ROWNUM listNum, tb.* FROM (
+			     SELECT boardNum, userName, b.userId, subject, 
+                      TO_CHAR(created, 'YYYY-MM-DD') created,
+                      hitCount, groupNum, orderNo, depth
+			        FROM board b
+			        JOIN member1 m ON b.userId=m.userId
+			        WHERE groupNum=#{groupNum}
+			        ORDER BY orderNo ASC
+			) tb
+	</select>
+	
+</mapper>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sch">
+	<insert id="insertSchedule" parameterType="com.sp.sch.Schedule">
+	     INSERT INTO schedule(
+		           num, userId, subject, color, sday, eday,
+		           stime, etime, repeat, repeat_cycle, memo) 
+		     VALUES(schedule_seq.NEXTVAL, #{userId}, #{subject},
+		            #{color}, #{sday},
+		            #{eday, jdbcType=VARCHAR},
+		            #{stime, jdbcType=VARCHAR},
+		            #{etime, jdbcType=VARCHAR},
+		            #{repeat}, #{repeat_cycle},
+		            #{memo, jdbcType=VARCHAR}
+		     )
+	</insert>
+	
+	<select id="listMonth" parameterType="map" resultType="com.sp.sch.Schedule">
+		SELECT num, subject, sday, eday, stime, etime,
+		            color, repeat, repeat_cycle 
+		FROM schedule
+		WHERE userId = #{userId} AND 
+		   ( 
+		      ( 
+		         TO_DATE(sday, 'YYYYMMDD') >= TO_DATE(#{startDay}, 'YYYYMMDD')
+		             AND TO_DATE(sday, 'YYYYMMDD') &lt;= TO_DATE(#{endDay}, 'YYYYMMDD')  
+		      ) OR (
+		         repeat=1 AND repeat_cycle!=0 AND 
+			         TO_CHAR(ADD_MONTHS(sday, 12 * repeat_cycle*TRUNC(((SUBSTR(#{startDay},1,4)-SUBSTR(sday,1,4))/repeat_cycle))), 'YYYYMMDD') &gt;= #{startDay} 
+			         AND TO_CHAR(ADD_MONTHS(sday, 12 * repeat_cycle*TRUNC(((SUBSTR(#{startDay},1,4)-SUBSTR(sday,1,4))/repeat_cycle))), 'YYYYMMDD') &lt;= #{endDay}
+			  )
+		  )
+		  ORDER BY sday ASC, num DESC 
+	</select>
+
+	<select id="listDay" parameterType="map" resultType="com.sp.sch.Schedule">
+		SELECT num, subject, sday, eday, color,
+		               TO_CHAR(created, 'YYYY-MM-DD') created
+		  FROM schedule
+		  WHERE userId = #{userId} AND
+		   (
+		      (
+		         TO_DATE(sday, 'YYYYMMDD') = TO_DATE(#{date}, 'YYYYMMDD')
+		         OR (eday IS NOT NULL AND TO_DATE(sday, 'YYYYMMDD') &gt;= TO_DATE(#{date}, 'YYYYMMDD') AND TO_DATE(eday, 'YYYYMMDD') &lt;= TO_DATE(#{date}, 'YYYYMMDD'))
+		      ) OR (
+		           repeat=1 AND MOD(MONTHS_BETWEEN(TO_DATE(sday, 'YYYYMMDD'), TO_DATE(#{date}, 'YYYYMMDD'))/12, repeat_cycle) = 0 			
+		      )
+		   )
+		  ORDER BY num DESC
+	</select>
+	
+	<select id="readSchedule" parameterType="Integer" resultType="com.sp.sch.Schedule">
+	    SELECT num, subject, sday, eday, stime, etime,
+		      color, repeat, repeat_cycle, memo, created 
+		  FROM schedule
+		  WHERE num = #{num}
+	</select>
+	
+	<update id="updateSchedule" parameterType="com.sp.sch.Schedule">
+	   UPDATE schedule SET
+	     subject=#{subject}, color=#{color}, sday=#{sday}, 
+	     eday=#{eday, jdbcType=VARCHAR},
+	     stime=#{stime, jdbcType=VARCHAR},
+	     etime=#{etime, jdbcType=VARCHAR},
+	     repeat=#{repeat},
+	     repeat_cycle=#{repeat_cycle},
+	     memo=#{memo, jdbcType=VARCHAR}
+	     WHERE num=#{num} AND userId=#{userId}
+	</update>
+	
+	<delete id="deleteSchedule" parameterType="map">
+	    DELETE FROM schedule WHERE num=#{num} AND userId=#{userId}
+	</delete>
+
+</mapper>

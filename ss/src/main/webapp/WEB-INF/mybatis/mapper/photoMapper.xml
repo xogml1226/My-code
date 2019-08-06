@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="photo">
+	<insert id="insertPhoto"
+	      parameterType="com.sp.photo.Photo">
+	   INSERT INTO photo(num, userId, subject, imageFilename, content)
+	      VALUES (photo_seq.NEXTVAL, #{userId}, #{subject},  
+	             #{imageFilename}, #{content})
+	</insert>
+	
+	<sql id="where-list">
+	  <if test="condition=='all'">
+			(INSTR(subject, #{keyword}) &gt; 0
+		          OR INSTR(content, #{keyword}) &gt; 0)
+	  </if>
+	  <if test="condition=='subject'">
+	       INSTR(subject, #{keyword}) &gt; 0
+	  </if>
+	  <if test="condition=='content'">
+	      INSTR(content, #{keyword}) &gt; 0 
+	  </if>
+	  <if test="condition=='userName'">
+	      userName=#{keyword}
+	  </if>
+	  <if test="condition=='created'">
+	      (TO_CHAR(p.created, 'YYYY-MM-DD') = #{keyword}
+            OR TO_CHAR(p.created, 'YYYYMMDD') = #{keyword})
+	  </if>
+	</sql>
+		
+	<select id="dataCount" resultType="Integer" parameterType="map">
+		SELECT NVL(COUNT(*), 0)
+		  FROM photo p
+	      JOIN member1 m ON p.userId=m.userId
+	     <where>
+	     	<if test="keyword!=null and keyword!='' ">
+	     	    <include refid="where-list"/>
+	     	</if>
+	     </where>		
+	</select>
+	
+	<select id="listPhoto" parameterType="map"
+	     resultType="com.sp.photo.Photo">
+			SELECT * FROM (
+			    SELECT ROWNUM rnum, tb.* FROM (
+				     SELECT num, p.userId, userName, subject, imageFilename, 
+	                    TO_CHAR(created, 'YYYY-MM-DD') created
+	                  FROM photo p
+	                  JOIN member1 m ON p.userId = m.userId
+                    <where>
+                         <if test="keyword != null and keyword != ''">
+			                  <include refid="where-list"/>
+		                 </if>
+	                </where>
+		                ORDER BY num DESC
+		<![CDATA[
+		        ) tb WHERE ROWNUM <= #{end}
+		    ) WHERE rnum >= #{start}
+		]]>
+	</select>
+	
+	<select id="readPhoto" parameterType="Integer"
+	      resultType="com.sp.photo.Photo">
+	SELECT num, p.userId, userName, subject, imageFilename, content,
+	            created
+	       FROM photo p
+	       JOIN member1 m ON p.userId = m.userId
+	       WHERE num=#{num}
+	</select>
+	
+	<!-- 이전글 -->
+	<select id="preReadPhoto" resultType="com.sp.photo.Photo" 
+				parameterType="map">
+		SELECT tb.* FROM (
+			SELECT num, subject
+			      FROM photo p
+			      JOIN member1 m ON p.userId=m.userId
+                    <where>
+                         <if test="keyword != null and keyword != '' ">
+			                  <include refid="where-list"/>
+		                 </if>
+		                 AND (num &gt; #{num})
+	                </where>
+				ORDER BY num ASC
+			) tb WHERE ROWNUM=1
+	</select>
+
+	<!-- 다음글 -->
+	<select id="nextReadPhoto" resultType="com.sp.photo.Photo" 
+				parameterType="map">
+		SELECT tb.* FROM (
+			SELECT num, subject
+			       FROM photo p
+			       JOIN member1 m ON p.userId=m.userId
+                    <where>
+                         <if test="keyword != null and keyword != '' ">
+			                  <include refid="where-list"/>
+		                 </if>
+		                 AND (num &lt; #{num})
+	                </where>
+				ORDER BY num DESC
+			) tb WHERE ROWNUM=1
+	</select>
+	
+	<update id="updatePhoto" parameterType="com.sp.photo.Photo">
+	   UPDATE photo SET subject=#{subject}, imageFilename=#{imageFilename},
+	        content=#{content}
+	        WHERE num=#{num}
+	</update>
+	
+	<delete id="deletePhoto" parameterType="Integer">
+	   DELETE FROM photo WHERE num=#{num}
+	</delete>
+
+</mapper>

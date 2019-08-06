@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="qna">
+	
+	<insert id="insertBoard" parameterType="com.sp.customer.qna.Board">
+		INSERT INTO qna(num, categoryNum, questionPrivate,  
+		                subject, content, userId, parent)
+		        VALUES (qna_seq.NEXTVAL, #{categoryNum}, #{questionPrivate},
+		                #{subject}, #{content}, #{userId},
+		        		#{parent, jdbcType=INTEGER}) 
+	</insert>
+		
+	<sql id="where-list">
+	   <if test="condition=='all' ">
+			(INSTR(q.subject, #{keyword}) &gt; 0
+		          OR INSTR(q.content, #{keyword}) &gt; 0)
+	   </if>
+	   <if test="condition=='subject' ">
+	        INSTR(q.subject, #{keyword}) &gt; 0
+	   </if>
+	   <if test="condition=='content' ">
+	        INSTR(q.content, #{keyword}) &gt; 0
+	   </if>
+	   <if test="condition=='userName' ">
+	        userName=#{keyword}
+	   </if>
+	   <if test="condition=='created' ">
+	        (TO_CHAR(q.created, 'YYYY-MM-DD') = #{keyword}
+	          OR TO_CHAR(q.created, 'YYYYMMDD') = #{keyword})
+	   </if>
+	</sql>
+	
+	<select id="dataCount" resultType="Integer" parameterType="map">
+	  SELECT NVL(COUNT(*), 0) 
+      FROM qna q
+      JOIN member1 m ON q.userId=m.userId
+	  <where>
+	  	q.parent IS NULL
+	  	<if test="keyword!=null and keyword != '' ">
+	  	   AND <include refid="where-list"/>
+	  	</if>
+	  </where>
+	</select>
+	
+	<select id="listBoard" parameterType="map"
+	            resultType="com.sp.customer.qna.Board">
+			SELECT * FROM (
+			    SELECT ROWNUM rnum, tb.* FROM (
+				     SELECT q.num, userName, q.userId, q.subject, 
+	                      q.questionPrivate, q.parent,
+	                      NVL2(q2.parent, 1, 0) isAnswer,
+	                      TO_CHAR(q.created, 'YYYY-MM-DD') created,
+	                      q.categoryNum, category
+				        FROM qna q
+				        LEFT OUTER JOIN qna q2 ON q.num = q2.parent
+				        JOIN qnaCategory c     ON q.categoryNum=c.categoryNum
+				        JOIN member1 m         ON q.userId=m.userId
+	                    <where>
+	                    	q.parent IS NULL
+	                        <if test="keyword != null and keyword != ''">
+				                AND <include refid="where-list"/>
+			                </if>
+		                </where>
+		                ORDER BY num DESC
+		<![CDATA[
+		        ) tb WHERE ROWNUM <= #{end}
+		    ) WHERE rnum >= #{start}
+		]]>
+	</select>
+	
+	<select id="readQuestion" parameterType="Integer" resultType="com.sp.customer.qna.Board">
+		SELECT q.num, q.userId, userName, q.subject, q.content, q.parent, q.created,
+		       q.questionPrivate, q.categoryNum, category
+        FROM qna q
+        JOIN qnaCategory c  ON q.categoryNum=c.categoryNum        
+        JOIN member1 m      ON q.userId = m.userId
+        WHERE num = #{num}                  
+	</select>
+
+	<select id="readAnswer" parameterType="Integer" resultType="com.sp.customer.qna.Board">
+		SELECT q.num, q.userId, userName, q.subject, q.content, q.parent, q.created,
+		       q.questionPrivate, q.categoryNum, category
+        FROM qna q
+        JOIN qnaCategory c  ON q.categoryNum=c.categoryNum        
+        JOIN member1 m      ON q.userId = m.userId
+        WHERE parent = #{num}                  
+	</select>
+	
+	<select id="preReadQuestion" parameterType="map" resultType="com.sp.customer.qna.Board">
+	SELECT * FROM (
+		SELECT q.num, q.subject, q.questionPrivate
+		FROM qna q
+		JOIN member1 m ON q.userId = m.userId
+		<where>
+		   q.parent IS NULL
+           <if test="keyword != null and keyword != ''">
+           		AND <include refid="where-list"/>
+            </if>
+            AND (q.num &gt; #{num})
+		</where>
+		ORDER BY num ASC
+	) WHERE ROWNUM=1
+	</select>
+	
+	<select id="nextReadQuestion" parameterType="map" resultType="com.sp.customer.qna.Board">
+	SELECT * FROM (
+		SELECT q.num, q.subject, q.questionPrivate
+		FROM qna q
+		JOIN member1 m ON q.userId = m.userId
+		<where>
+		   q.parent IS NULL
+           <if test="keyword != null and keyword != ''">
+           		AND <include refid="where-list"/>
+            </if>
+            AND (q.num &lt; #{num})
+		</where>
+		ORDER BY num DESC
+	) WHERE ROWNUM=1
+	</select>
+	
+	<update id="updateBoard" parameterType="com.sp.customer.qna.Board">
+		UPDATE qna SET subject=#{subject}, content=#{content},
+		    categoryNum=#{categoryNum}, questionPrivate=#{questionPrivate}
+		    WHERE num = #{num} AND userId = #{userId}
+	</update>
+	
+	<delete id="deleteQuestion" parameterType="Integer">
+		DELETE FROM qna WHERE num IN
+		   (SELECT num FROM qna START WITH num = #{num}
+		             CONNECT BY PRIOR num = parent)
+	</delete>
+	
+	<delete id="deleteAnswer" parameterType="Integer">
+		DELETE FROM qna WHERE num = #{num}
+	</delete>
+	
+	<insert id="insertCategory" parameterType="com.sp.customer.qna.Board">
+		INSERT INTO qnaCategory(categoryNum, category)
+		        VALUES (qnaCategory_seq.NEXTVAL, #{category}) 
+	</insert>
+	
+	<update id="updateCategory" parameterType="com.sp.customer.qna.Board">
+		UPDATE qnaCategory SET category=#{category}
+		WHERE categoryNum=#{categoryNum}
+	</update>
+	
+	<select id="listCategory" resultType="com.sp.customer.qna.Board">
+		SELECT categoryNum, category FROM qnaCategory
+	</select>
+	
+	<delete id="deleteCategory" parameterType="Integer">
+		DELETE FROM qnaCategory WHERE categoryNum=#{categoryNum}
+	</delete>
+	
+</mapper>
