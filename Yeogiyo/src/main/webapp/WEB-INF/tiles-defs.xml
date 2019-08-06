@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE tiles-definitions PUBLIC
+       "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+       "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+
+<tiles-definitions>
+
+	<!-- 사용자 -->
+	<definition name=".userLayout" template="/WEB-INF/view/user/layout/layout3.jsp">
+	    <put-attribute name="title" value="Yeogiyo" />
+	  	<put-attribute name="header" value="/WEB-INF/view/user/layout/header.jsp" />
+		<put-attribute name="body" value="/WEB-INF/view/user/main/main.jsp" />
+		<put-attribute name="footer" value="/WEB-INF/view/user/layout/footer.jsp" />
+	</definition>
+	
+	<!-- 호텔오너 -->
+	<definition name=".ownerLayout" template="/WEB-INF/view/owner/layout/layout3.jsp">
+	    <put-attribute name="title" value="Yeogiyo" />
+	  	<put-attribute name="header" value="/WEB-INF/view/owner/layout/header.jsp" />
+		<put-attribute name="body" value="/WEB-INF/view/owner/main/main.jsp" />
+		<put-attribute name="footer" value="/WEB-INF/view/owner/layout/footer.jsp" />
+	</definition>
+	
+   <!-- 관리자 -->
+	<definition name=".adminLayout" template="/WEB-INF/view/admin/layout/layout3.jsp">
+	    <put-attribute name="title" value="Yeogiyo" />
+	  	<put-attribute name="header" value="/WEB-INF/view/admin/layout/header.jsp" />
+		<put-attribute name="body" value="/WEB-INF/view/admin/main/main.jsp" />
+		<put-attribute name="footer" value="/WEB-INF/view/admin/layout/footer.jsp" />
+	</definition>
+	
+	<definition name=".user.*.*.*" extends=".userLayout">
+		<put-attribute name="body" value="/WEB-INF/view/user/{1}/{2}/{3}.jsp"/>
+	</definition>
+	<definition name=".user.*.*" extends=".userLayout">
+		<put-attribute name="body" value="/WEB-INF/view/user/{1}/{2}.jsp"/>
+	</definition>
+	<definition name=".user.*" extends=".userLayout">
+    	<put-attribute name="body" value="/WEB-INF/view/user/{1}.jsp" />
+	</definition>
+	
+	<definition name=".owner.*.*.*" extends=".ownerLayout">
+		<put-attribute name="body" value="/WEB-INF/view/owner/{1}/{2}/{3}.jsp"/>
+	</definition>
+	<definition name=".owner.*.*" extends=".ownerLayout">
+		<put-attribute name="body" value="/WEB-INF/view/owner/{1}/{2}.jsp"/>
+	</definition>
+	<definition name=".owner.*" extends=".ownerLayout">
+    	<put-attribute name="body" value="/WEB-INF/view/owner/{1}.jsp" />
+	</definition>
+	
+	<definition name=".admin.*.*.*" extends=".adminLayout">
+		<put-attribute name="body" value="/WEB-INF/view/admin/{1}/{2}/{3}.jsp"/>
+	</definition>
+	<definition name=".admin.*.*" extends=".adminLayout">
+		<put-attribute name="body" value="/WEB-INF/view/admin/{1}/{2}.jsp"/>
+	</definition>
+	<definition name=".admin.*" extends=".adminLayout">
+    	<put-attribute name="body" value="/WEB-INF/view/admin/{1}.jsp" />
+	</definition>
+	
+
+</tiles-definitions>

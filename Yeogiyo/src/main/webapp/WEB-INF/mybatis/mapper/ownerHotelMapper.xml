@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="owner.hotel">
+
+	<!-- select all -->
+	<select id="selectAll" parameterType="java.lang.String"
+		resultType="com.sp.owner.hotel.Hotel">
+		SELECT h.hotelId, hotelName, granted, optNum, optName,
+		optPrice, detail, mainPhoto, addr1, addr2, postcode, latitude,
+		longitude, hotelSize, hotelTel, hotelCreated, checkIn, checkOut,
+		businessNum, grade
+		, hotelPhotoNum, hotelPhotoName, prepareNum,
+		prepareContent,
+		h.typeNum
+		, type, conNum, conName, conType, conOpenTime,
+		conCloseTime
+		FROM hotel h
+		JOIN hotelAddOpt a
+		ON h.hotelId = a.hotelId
+		JOIN hotelDetail
+		d
+		ON h.hotelId = d.hotelId
+		JOIN hotelPhoto ph
+		ON
+		h.hotelId = ph.hotelId
+		JOIN hotelPrepare p
+		ON h.hotelId = p.hotelId
+		JOIN
+		hotelType t
+		ON
+		h.typeNum = t.typeNum
+		JOIN convenient c
+		ON h.hotelId =
+		c.hotelId
+		WHERE
+		h.hotelId=#{hotelId}
+	</select>
+
+	<!-- hotel table query -->
+	<select id="selectHotel" parameterType="java.lang.String"
+		resultType="com.sp.owner.hotel.Hotel">
+		SELECT hotelId, hotelName, granted, typeNum
+		FROM hotel WHERE
+		hotelId=#{hotelId}
+	</select>
+
+	<insert id="insertHotel"
+		parameterType="com.sp.owner.hotel.Hotel">
+		INSERT INTO hotel(hotelId, hotelName, typeNum)
+		VALUES(#{hotelId}, #{hotelName}, #{typeNum})
+	</insert>
+
+	<update id="updateHotel"
+		parameterType="com.sp.owner.hotel.Hotel">
+		UPDATE hotel
+		SET hotelName=#{hotelName},
+		typeNum=#{typeNum}
+		WHERE hotelId=#{hotelId}
+	</update>
+
+	<update id="updateGranted" parameterType="java.lang.String">
+		UPDATE hotel
+		SET
+		granted=1
+		WHERE hotelId=#{hotelId}
+	</update>
+
+	<update id="updateRequest" parameterType="java.lang.String">
+		UPDATE hotel
+		SET
+		request=1
+		WHERE hotelId=#{hotelId}
+	</update>
+
+	<delete id="deleteHotel" parameterType="java.lang.String">
+		DELETE FROM hotel
+		WHERE
+		hotelId=#{hotelId}
+	</delete>
+
+
+
+	<!-- hotelAddOpt table query -->
+	<select id="selectHotelAddOpt" parameterType="java.lang.String"
+		resultType="com.sp.owner.hotel.Hotel">
+		SELECT optNum, optName, optPrice, hotelId
+		FROM hotelAddOpt
+		WHERE hotelId=#{hotelId}
+	</select>
+
+	<insert id="insertHotelAddOpt"
+		parameterType="com.sp.owner.hotel.Hotel">
+		INSERT INTO hotelAddOpt(optNum, optName, optPrice,
+		hotelId)
+		VALUES(hotelAddOpt_SEQ.NEXTVAL, #{optName}, #{optPrice},
+		#{hotelId})
+	</insert>
+
+	<update id="updateHotelAddOpt"
+		parameterType="com.sp.owner.hotel.Hotel">
+		UPDATE hotelAddOpt
+		SET optName=#{optName},
+		optPrice=#{optPrice}
+		WHERE optNum=#{optNum}
+	</update>
+
+	<delete id="deleteHotelAddOpt" parameterType="java.lang.String">
+		DELETE FROM
+		deleteHotelAddOpt
+		WHERE hotelId=#{hotelId}
+	</delete>
+
+
+
+	<!-- hotelDetail table query -->
+	<select id="selectHotelDetail" parameterType="java.lang.String"
+		resultType="com.sp.owner.hotel.Hotel">
+		SELECT hotelId, detail, mainPhoto, addr1, addr2, postCode,
+		latitude, longitude
+		, hotelSize, hotelTel, hotelCreated, checkIn,
+		checkOut, businessNum, grade
+		FROM hotelDetail
+		WHERE hotelId=#{hotelId}
+	</select>
+
+	<insert id="insertHotelDetail"
+		parameterType="com.sp.owner.hotel.Hotel">
+		INSERT INTO hotelDetail(hotelId, detail, mainPhoto,
+		addr1, addr2, postCode, latitude, longitude
+		, hotelSize, hotelTel,
+		hotelCreated, checkIn, checkOut, businessNum)
+		VALUES(#{hotelId},
+		#{detail}, #{mainPhoto}, #{addr1}, #{addr2},
+		#{postCode}, #{latitude},
+		#{longitude}
+		, #{hotelSize}, #{hotelTel}, #{hotelCreated}, #{checkIn},
+		#{checkOut},
+		#{businessNum})
+	</insert>
+
+	<update id="updateHotelDetail"
+		parameterType="com.sp.owner.hotel.Hotel">
+		UPDATE hotelDetail
+		SET detail=#{detail},
+		mainPhoto=#{mainPhoto}, addr1=#{addr1}
+		, addr2=#{addr2},
+		postCode=#{postCode}, latitude=#{latitude},
+		longitude=#{longitude}
+		,
+		hotelSize=#{hotelSize}, hotelTel=#{hotelTel},
+		hotelCreated=#{hotelCreated}
+		, checkIn=#{checkIn},
+		checkOut=#{checkOut}, businessNum=#{businessNum}
+		WHERE
+		hotelId=#{hotelId}
+	</update>
+
+	<delete id="deleteHotelDetail" parameterType="java.lang.String">
+		DELETE FROM
+		hotelDetail
+		WHERE hotelId=#{hotelId}
+	</delete>
+
+
+
+	<!-- hotelPhoto table query -->
+	<select id="selectHotelPhoto" parameterType="java.lang.String"
+		resultType="com.sp.owner.hotel.Hotel">
+		SELECT hotelPhotoNum, hotelPhotoName, hotelId
+		FROM
+		hotelPhoto
+		WHERE hotelId=#{hotelId}
+	</select>
+
+	<insert id="insertHotelPhoto"
+		parameterType="com.sp.owner.hotel.Hotel">
+		INSERT INTO hotelPhoto(hotelPhotoNum, hotelPhotoName,
+		hotelId)
+		VALUES(hotelPhoto_SEQ.NEXTVAL, #{hotelPhotoName}, #{hotelId})
+	</insert>
+
+	<update id="updateHotelPhoto"
+		parameterType="com.sp.owner.hotel.Hotel">
+		UPDATE hotelPhoto
+		SET hotelPhotoNum = #{hotelPhotoNum},
+		hotelPhotoName=#{hotelPhotoName}
+		WHERE hotelId=#{hotelId}
+	</update>
+
+	<delete id="deleteHotelPhoto" parameterType="java.lang.String">
+		DELETE FROM
+		hotlePhoto
+		WHERE hotelId=#{hotelId}
+	</delete>
+
+
+
+	<!-- hotelPrepare table query -->
+	<select id="selectHotelPrepare" parameterType="java.lang.String"
+		resultType="com.sp.owner.hotel.Hotel">
+		SELECT prepareNum, prepareContent, hotelId FROM
+		hotelPrepare
+		WHERE hotelId=#{hotelId}
+	</select>
+
+	<insert id="insertHotelPrepare"
+		parameterType="com.sp.owner.hotel.Hotel">
+		INSERT INTO hotelPrepare(prepareNum,
+		prepareContent, hotelId)
+		VALUES(hotelPrepare_SEQ.NEXTVAL,
+		#{prepareContent}, #{hotelId})
+	</insert>
+
+	<update id="updateHotelPrepare"
+		parameterType="com.sp.owner.hotel.Hotel">
+		UPDATE hotelPrepare
+		SET
+		prepareContent=#{prepareContent}
+		WHERE hotelId=#{hotelId}
+	</update>
+
+	<delete id="deleteHotelPrepare" parameterType="java.lang.String">
+		DELETE FROM
+		hotelPrepare
+		WHERE hotelId=#{hotelId}
+	</delete>
+
+
+
+	<!-- hotelConvenient table query -->
+	<select id="selectConvenient" parameterType="java.lang.String"
+		resultType="com.sp.owner.hotel.Hotel">
+		SELECT conNum, conName, conType, conOpenTime, conCloseTime,
+		hotelId
+		FROM convenient
+		WHERE hotelId=#{hotelId}
+	</select>
+
+	<insert id="insertConvenient"
+		parameterType="com.sp.owner.hotel.Hotel">
+		INSERT INTO convenient(conNum, conName, conType,
+		conOpenTime, conCloseTime, hotelId)
+		VALEUS(convenient_SEQ.NEXTVAL,
+		#{conName},
+		#{conType}, #{conOpenTime}, #{conCloseTime}, #{hotelId})
+	</insert>
+
+	<update id="updateConvenient"
+		parameterType="com.sp.owner.hotel.Hotel">
+		UPDATE convenient
+		SET conName=#{conName}, #{conType},
+		#{conOpenTime}, #{conClostTime}
+		WHERE hotelId=#{hotelId}
+	</update>
+
+	<delete id="deleteConvenient" parameterType="java.lang.String">
+		DELETE FROM
+		convenient
+		WHERE hotelId=#{hotelId}
+	</delete>
+
+
+
+	<!-- room table query -->
+	<select id="selectRoom" parameterType="java.lang.String"
+		resultType="com.sp.owner.hotel.Hotel">
+		SELECT roomNum, roomName, stair, roomType, maxPeople,
+		roomStatus, roomPrice, extraPrice, hotelId
+		FROM room
+		WHERE
+		hotelId=#{hotelId}
+	</select>
+
+	<insert id="insertRoom" parameterType="com.sp.owner.hotel.Hotel">
+		INSERT INTO room(roomNum,
+		roomName, stair, roomType, maxPeople, roomStatus, roomPrice,
+		extraPrice, hotelId)
+		VALUES(room_SEQ.NEXTVAL, #{roomName#}, #{stair},
+		#{roomType}, #{maxPeople}, #{roomStatus}, #{roomPrice},
+		#{extraPrice},
+		#{hotelId})
+	</insert>
+
+	<update id="updateRoom" parameterType="com.sp.owner.hotel.Hotel">
+		UPDATE ROOM SET
+		roomName=#{roomName}, stair=#{stair}, roomType=#{roomType},
+		maxPeople=#{maxPeople}, roomStatus=#{roomStatus},
+		roomPrice=#{roomPrice}, extraPrice=#{extraPrice}, hotelId=#{hotelId}
+		WHERE roomNum=#{roomNum}
+	</update>
+
+	<delete id="deleteRoom" parameterType="java.lang.String">
+		DELETE FROM room
+		WHERE
+		roomNum=#{roomNum}
+	</delete>
+
+
+
+	<!-- roomDetail table query -->
+	<select id="selectRoomDetail" parameterType="java.lang.String"
+		resultType="com.sp.owner.hotel.Hotel">
+		SELECT roomDetailNum, roomNum, roomDetails
+		FROM roomDetail
+		WHERE roomNum=#{roomNum}
+	</select>
+
+	<insert id="insertRoomDetail"
+		parameterType="com.sp.owner.hotel.Hotel">
+		INSERT INTO roomDetail(roomDetailNum, roomNum,
+		roomDetails)
+		VALUES(roomDetail_SEQ.NEXTVAL, #{roomNum}, #{roomDetails})
+	</insert>
+
+	<update id="updateRoomDetail"
+		parameterType="com.sp.owner.hotel.Hotel">
+		UPDATE roomDetail
+		SET roomDetails=#{roomDetails}
+	</update>
+
+	<delete id="deleteRoomDetail" parameterType="java.lang.String">
+		DELETE FROM
+		roomDetail WHERE roomNum=#{roomNum}
+	</delete>
+
+
+
+	<!-- roomPhoto table query -->
+	<select id="selectRoomPhoto" parameterType="java.lang.String"
+		resultType="com.sp.owner.hotel.Hotel">
+		SELECT roomPhotoNum, roomPhotoName, roomNum
+		FROM roomPhoto
+		WHERE roomNum=#{roomNum}
+	</select>
+
+	<insert id="inserteRoomPhoto"
+		parameterType="com.sp.owner.hotel.Hotel">
+		INSERT INTO roomPhoto(roomPhotoNum, roomPhotoName,
+		roomNum)
+		VALUES(roomPhoto_SEQ.NEXTVAL, #{roomPhotoName}, #{roomNum})
+	</insert>
+
+
+
+	<update id="updateRoomPhoto"
+		parameterType="com.sp.owner.hotel.Hotel">
+		UPDATE roomPhoto SET roomPhotoName=#{roomPhotoName}
+	</update>
+
+	<delete id="deleteRoomPhoto" parameterType="java.lang.String">
+		DELETE FROM roomPhoto
+		WHERE roomPhotoNum=#{roomPhotoNum}
+	</delete>
+</mapper>

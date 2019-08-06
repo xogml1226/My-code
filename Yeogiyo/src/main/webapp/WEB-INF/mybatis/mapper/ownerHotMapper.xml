@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="owner.hotplace">
+
+	<select id="seq" resultType="Integer">
+		SELECT hotplace_seq.NEXTVAL FROM dual
+	</select>
+	
+	<insert id="insertHotplace" parameterType="com.sp.owner.hotplace.Hotplace">
+		INSERT INTO hotplace(placeNum, placeName, placeDis, placePhoto, placeZip, placeAddr1, placeAddr2, hotelId)
+		VALUES(#{placeNum},#{placeName}, #{placeDis}, #{placePhoto}, #{placeZip}, #{placeAddr1}, #{placeAddr2}, #{hotelId})
+	</insert>
+	
+	<select id="selectHotplace" parameterType="map" resultType="com.sp.owner.hotplace.Hotplace">
+		SELECT * FROM(
+	    	SELECT ROWNUM rnum, tb.* FROM(
+	        	SELECT placenum, placename, placedis, placephoto, placezip, placeaddr1, placeaddr2, hotelid 
+	        	FROM hotplace
+	        	WHERE hotelid = #{hotelId}
+        		<if test="keyword != null and keyword != '' ">
+        			AND <include refid="where-list"/>
+        		</if>
+	        	ORDER BY placenum DESC
+<![CDATA[
+	        	)tb WHERE ROWNUM <= #{end}
+		)WHERE rnum >= #{start}
+]]>
+	</select>
+	
+	<select id="dataCount" parameterType="map" resultType="Integer">
+		SELECT NVL(COUNT(*), 0)
+		FROM hotplace
+       	WHERE hotelid = #{hotelId}
+    		<if test="keyword != null and keyword != '' ">
+    			AND <include refid="where-list"/>
+    		</if>
+	</select>
+	
+	<delete id="deleteHotplace" parameterType="integer">
+		DELETE FROM hotplace WHERE placeNum=#{placeNum}
+	</delete>
+	
+	<select id="readHotplace" parameterType="Integer" resultType="com.sp.owner.hotplace.Hotplace">
+		SELECT placenum, placename, placedis, placephoto, placezip, placeaddr1, placeaddr2, hotelid 
+		FROM hotplace
+		WHERE placenum = #{placeNum}
+	</select>
+	
+	<update id="updateHotplace" parameterType="com.sp.owner.hotplace.Hotplace">
+		UPDATE hotplace SET placename= #{placeName}, placedis = #{placeDis}, placephoto = #{placePhoto}
+		, placezip = #{placeZip}, placeaddr1 = #{placeAddr1}, placeaddr2 = #{placeAddr2}
+		WHERE placenum = #{placeNum}
+	</update>
+	
+	<sql id="where-list">
+		<if test="condition=='placeName' ">
+			INSTR(placeName, #{keyword}) &gt; 0
+		</if>
+	</sql>
+	
+</mapper>

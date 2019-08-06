@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="user.mail">
+	<select id="readId" parameterType="com.sp.user.mail.Mail" resultType="String">
+		SELECT userId FROM member
+		WHERE userName=#{userName}
+		AND userEmail=#{userEmail}
+		AND userTel=#{userTel}
+	</select>
+	
+	<select id="readPwd" parameterType="com.sp.user.mail.Mail" resultType="String">
+		SELECT userPwd FROM member
+		WHERE userId=#{userId}
+		AND userName=#{userName}
+		AND userEmail=#{userEmail}
+		AND userTel=#{userTel}
+	</select>
+	
+	<update id="updatePwd" parameterType="map">
+		UPDATE member SET userPwd=#{userPwd} WHERE userId=#{userId}
+	</update>
+</mapper>

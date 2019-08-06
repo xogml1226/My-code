@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="owner.reservation">
+	<select id="reservation" parameterType="map" resultType="com.sp.owner.reservation.Reservation">
+		SELECT roomName, roomType, peopleCount, TO_CHAR(checkInday,'YYYY-MM-DD') checkInday, TO_CHAR(checkOutday,'YYYY-MM-DD') checkOutday, userName, userTel
+		FROM reserdetail d 
+		JOIN reservation r ON d.reservationNum = r.reservationNum
+		JOIN room m ON d.roomnum = m.roomnum
+		WHERE r.hotelId = #{hotelId}
+		AND TO_CHAR(checkinday,'yyyymmdd') <![CDATA[ <= ]]> #{day} 
+		AND (TO_CHAR(checkinday,'yyyymmdd') = #{day}  OR (trunc(to_date(TO_CHAR(checkoutday,'yyyymmdd'),'yyyymmdd')) - trunc(to_date(#{day} ,'yyyymmdd')) <![CDATA[ > ]]> 0))
+	</select>
+</mapper>

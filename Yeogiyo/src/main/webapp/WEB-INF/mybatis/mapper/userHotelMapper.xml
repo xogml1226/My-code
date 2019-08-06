@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="user.hotel">
+
+	<select id="hotelList" parameterType="map" resultType="com.sp.user.hotel.Hotel">
+		SELECT * FROM (
+      	  SELECT ROWNUM rnum, tb.* FROM (
+           	 SELECT h.hotelId, hotelname, detail, addr1, addr2, mainphoto, NVL(a.score,0) score, NVL(a.score,0) scores
+                FROM hotel h JOIN hoteldetail d ON h.hotelId = d.hotelId
+                 LEFT OUTER JOIN (
+                    SELECT hotelId, ROUND(AVG(score),1) score FROM review GROUP BY hotelId
+                )a ON a.hotelId = h.hotelId
+<![CDATA[			
+					WHERE INSTR(addr1,#{addr1})>=1    
+	        ) tb WHERE ROWNUM <= #{end}
+	    ) WHERE rnum >= #{start}
+]]>
+	</select>
+	
+	<select id="hotelCount" parameterType="map" resultType="Integer">
+		SELECT NVL(COUNT(*),0) hotelCount 
+		FROM hotel h JOIN hoteldetail d ON h.hotelId = d.hotelId
+<![CDATA[			
+			WHERE INSTR(addr1,#{addr1})>=1   
+]]>  
+	</select>
+
+	<select id="hotelDetail" parameterType="map" resultType="com.sp.user.hotel.Hotel">
+		SELECT h.hotelName, detail, addr1,addr2,hotelTel, hotelCreated, checkin, checkout,latitude ,longitude,d.hotelid 
+		FROM hotel h JOIN hoteldetail d ON h.hotelId = d.hotelid 
+            
+		WHERE hotelName = #{hotelName}
+	</select>
+	
+	<select id="hotelPhoto" parameterType="map" resultType="com.sp.user.hotel.Hotel">
+		SELECT hotelphotoName 
+		FROM hotelphoto p 
+		JOIN hotel h ON p.hotelId=h.hotelid 
+		WHERE hotelName=#{hotelName}
+	</select>
+	
+	<select id="hotelId" parameterType="String" resultType="String">
+		select hotelid FROM hotel WHERE hotelName=#{hotelName}
+	</select>
+	
+	<select id="hotelRoomList" parameterType="map" resultType="com.sp.user.hotel.Hotel">
+		SELECT DISTINCT roomphotoname, roomprice,maxpeople,roomdetails,roomtype
+		FROM roomphoto p JOIN room r ON p.roomnum=r.roomnum
+    	JOIN roomdetail d ON d.roomnum = r.roomnum
+  		WHERE hotelId=#{hotelId}
+	</select>
+	
+	<select id="addoptList" parameterType="String" resultType="com.sp.user.hotel.Hotel">
+		SELECT optNum, optName, optPrice, hotelId FROM hoteladdopt WHERE hotelId=#{hotelId}
+	</select>
+
+	<select id="showReview" parameterType="map" resultType="com.sp.user.hotel.Hotel">
+		SELECT * FROM (
+			SELECT ROWNUM rnum, tb.* FROM (
+				SELECT reviewNum, reviewTitle, reviewContent, score FROM review
+					WHERE hotelId=#{hotelId}
+					 order by reviewnum desc
+<![CDATA[
+	        ) tb WHERE ROWNUM <= 4
+	    ) WHERE rnum >= 1
+]]>
+	</select>
+	
+	<select id="showHotPlace" parameterType="map" resultType="com.sp.user.hotel.Hotel">
+		SELECT placeName,placeDis, placePhoto FROM hotplace WHERE hotelId=#{hotelId}
+	</select>
+	
+	<insert id="hotelqna" parameterType="map">
+		INSERT INTO hotelqna(qnaNum, qnaTitle, qnaContent, qnaParent, qnaCreated, userId, hotelId)
+		VALUES(HOTELQNA_SEQ.nextval, #{hotelqnaTitle}, #{hotelqnaContent}, 0, SYSDATE, #{userId}, #{hotelId})
+	</insert>
+
+</mapper>

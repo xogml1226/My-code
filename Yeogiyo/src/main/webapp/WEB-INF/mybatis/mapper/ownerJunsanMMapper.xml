@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="owner.jungsanM">
+	<update id="insertJungsan" parameterType="map">
+      INSERT INTO jungsanm (jungsanNum, jungsanCreated, hotelId, paydate, paytype, roomnum, roomname, peopleCount, checkinDay, checkoutDay, price)
+        SELECT jungsanM_seq.NEXTVAL jungsanNum ,#{day} jungsanCreated ,hotelId, paydate, paytype, roomnum, roomname, peopleCount, checkinDay, checkoutDay, price
+        FROM jungsanD 
+        where hotelId = #{hotelId}
+        AND TO_CHAR(jungsanCreated,'YYYY-MM') = #{day}
+	</update>
+	
+	<delete id="deleteJungsan" parameterType="map">
+		DELETE FROM jungsanM WHERE hotelId = #{hotelId} AND jungsanCreated = #{day}
+	</delete>
+	
+	<select id="selectJunsan" parameterType="map" resultType="com.sp.owner.jungsanM.JungsanM">
+		SELECT jungsanNum, hotelId, payType, roomNum, roomName, peopleCount, price
+		        ,jungsanCreated
+		        ,TO_CHAR(payDate,'YYYY-MM-DD') payDate
+		        ,TO_CHAR(checkinDay,'YYYY-MM-DD') checkinDay
+		        ,TO_CHAR(checkoutDay,'YYYY-MM-DD') checkoutDay
+		FROM jungsanm
+		WHERE hotelId = #{hotelId}
+        AND jungsanCreated = #{day}
+        ORDER BY payDate
+	</select>
+	
+	<select id="selectDay" parameterType="map" resultType="com.sp.owner.jungsanM.JungsanM">
+        SELECT a1.dates payDate, NVL(price,0) price, NVL(peopleCount,0) peopleCount FROM
+		(
+		    SELECT LEVEL dates
+		    FROM dual CONNECT BY LEVEL <![CDATA[ <= ]]> 12
+		)a1
+		LEFT OUTER JOIN 
+		(
+            select REPLACE(SUBSTR(jungsanCreated,6,2),0,'') dates, jungsanCreated, SUM(price) price, SUM(peoplecount) peopleCount
+            FROM jungsanM
+            WHERE hotelId = #{hotelId}
+            AND SUBSTR(jungsanCreated,1,4) = SUBSTR(#{day},1,4)
+            GROUP BY jungsanCreated
+            ORDER BY jungsanCreated
+		)a2
+		ON a1.dates = a2.dates
+		ORDER BY a1.dates
+	</select>
+</mapper>

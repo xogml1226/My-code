@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="user.event">
+
+<insert id="insertEvent" parameterType="com.sp.user.event.Event">
+	INSERT INTO event(eventNum, eventTitle, eventStart, eventEnd, eventContent, eventPhoto)
+	VALUES(event_seq.NEXTVAL, #{eventTitle}, #{eventStart}, #{eventEnd}, #{eventContent}, #{eventPhoto})
+</insert>
+
+<select id="dataCount" parameterType="map" resultType="Integer">
+	SELECT NVL(COUNT(*), 0)
+		FROM event
+		<where>
+			<if test="keyword!=null and keyword!=''">
+				(INSTR(eventTitle, #{keyword}) &gt; 0
+					OR INSTR(eventContent, #{keyword}) &gt; 0)
+			</if>
+			<if test="status!=null and status!=''">
+				eventStatus=#{status}
+			</if>
+		</where>
+</select>
+
+<select id="listEvent" parameterType="map" resultType="com.sp.user.event.Event">
+	SELECT * FROM (
+		SELECT ROWNUM rnum, tb.* FROM(
+			SELECT eventNum, eventTitle, eventStart, eventEnd, eventPhoto, eventStatus
+			FROM event
+			<where>
+				<if test="keyword!=null and keyword!=''">
+					(INSTR(eventTitle, #{keyword}) &gt; 0
+						OR INSTR(eventContent, #{keyword}) &gt; 0)
+				</if>
+				<if test="status!=null and status!=''">
+					eventStatus=#{status}
+				</if>
+			</where>
+			ORDER BY eventNum DESC
+<![CDATA[		
+		) tb WHERE ROWNUM <= #{end}
+	) WHERE rnum >= #{start}
+]]>
+</select>
+
+<update id="updateEventStatus" parameterType="map">
+	UPDATE event SET eventStatus=#{eventStatus}
+	WHERE eventNum=#{eventNum}
+</update>
+
+<select id="readEvent" parameterType="Integer" resultType="com.sp.user.event.Event">
+	SELECT e.eventNum, eventTitle, eventContent, eventPhoto, 
+		TO_CHAR(eventStart, 'YYYY-MM-DD') eventStart,
+		TO_CHAR(eventEnd, 'YYYY-MM-DD') eventEnd,
+		eventCreated, eventStatus,
+		NVL(eventLikeCount, 0) eventLikeCount
+	FROM event e
+	LEFT OUTER JOIN (
+		SELECT eventNum, COUNT(*) eventLikeCount FROM eventLike
+		GROUP BY eventNum
+	) ec ON e.eventNum=ec.eventNum
+	WHERE e.eventNum=#{eventNum}
+</select>
+<select id="preReadEvent" parameterType="map" resultType="com.sp.user.event.Event">
+	SELECT tb.* FROM(
+		SELECT eventNum, eventTitle
+			FROM event
+			<where>
+				<if test="keyword!=null and keyword!=''">
+					(INSTR(eventTitle, #{keyword}) &gt; 0
+						OR INSTR(eventContent, #{keyword}) &gt; 0)
+				</if>
+				<if test="status!=null and status!=''">
+					eventStatus=#{status}
+				</if>
+				AND (eventNum &lt; #{eventNum})
+			</where>
+		ORDER BY eventNum DESC	
+	) tb WHERE ROWNUM=1
+</select>
+<select id="nextReadEvent" parameterType="map" resultType="com.sp.user.event.Event">
+	SELECT tb.* FROM(
+		SELECT eventNum, eventTitle
+			FROM event
+			<where>
+				<if test="keyword!=null and keyword!=''">
+					(INSTR(eventTitle, #{keyword}) &gt; 0
+						OR INSTR(eventContent, #{keyword}) &gt; 0)
+				</if>
+				<if test="status!=null and status!=''">
+					eventStatus=#{status}
+				</if>
+				AND (eventNum &gt; #{eventNum})
+			</where>
+		ORDER BY eventNum ASC	
+	) tb WHERE ROWNUM=1
+</select>
+
+<update id="updateEvent" parameterType="com.sp.user.event.Event">
+	UPDATE event SET eventTitle=#{eventTitle}, eventContent=#{eventContent},
+		eventStart=#{eventStart}, eventEnd=#{eventEnd}, eventPhoto=#{eventPhoto}
+	WHERE eventNum=#{eventNum}	
+</update>
+
+<delete id="deleteEvent">
+	DELETE FROM event WHERE eventNum=#{eventNum}
+</delete>
+
+<insert id="insertEventLike" parameterType="map">
+	INSERT INTO eventLike(eventNum, userId)
+	VALUES(#{eventNum}, #{userId})
+</insert>
+
+<select id="eventLikeCount" parameterType="Integer" resultType="Integer">
+	SELECT COUNT(*) FROM eventLike WHERE eventNum=#{eventNum}
+</select>
+
+<insert id="insertEventReply">
+	INSERT INTO eventReply(eventreplyNum, eventreplyContent, eventreplyAnswer, eventNum, userId)
+	VALUES(eventreply_seq.NEXTVAL, #{eventreplyContent}, #{eventreplyAnswer}, #{eventNum}, #{userId})
+</insert>
+
+<select id="eventReplyCount" parameterType="Integer" resultType="Integer">
+	SELECT NVL(COUNT(*), 0) FROM eventReply
+	WHERE eventNum=#{eventNum} AND eventreplyAnswer=0
+</select>
+
+<select id="listEventReply" parameterType="map" resultType="com.sp.user.event.EventReply">
+	SELECT * FROM (
+			SELECT ROWNUM rnum, tb.* FROM (
+				SELECT er.eventreplyNum, er.userId, eventNum, eventreplyContent, eventreplyCreated
+				            ,NVL(eventreplyAnswerCount, 0) eventreplyAnswerCount  
+				FROM eventReply er
+				LEFT OUTER JOIN (
+				     SELECT eventreplyAnswer, NVL(COUNT(*), 0) eventreplyAnswerCount
+				     FROM eventReply WHERE eventreplyAnswer!=0 GROUP BY eventreplyAnswer
+				) a ON er.eventreplyNum = a.eventreplyAnswer
+				WHERE eventNum=#{eventNum}  AND er.eventreplyAnswer=0
+				ORDER BY er.eventreplyNum DESC
+<![CDATA[				
+			) tb WHERE ROWNUM <= #{end}
+		) WHERE rnum >= #{start}
+]]>		
+</select>
+
+<delete id="deleteEventReply" parameterType="map">
+	DELETE eventReply
+	WHERE 
+	<if test="mode=='reply'">
+		eventreplyNum IN (
+			SELECT eventreplyNum FROM eventReply
+			START WITH eventreplyNum=#{eventreplyNum}
+			CONNECT BY PRIOR eventreplyNum=eventreplyAnswer
+		)
+	</if>
+	<if test="mode=='answer'">
+		eventreplyNum=#{eventreplyNum}
+	</if>
+</delete>
+
+<select id="listEventReplyAnswer" parameterType="Integer" resultType="com.sp.user.event.EventReply">
+	SELECT eventreplyNum, eventreplyContent, eventreplyCreated, eventreplyAnswer, eventNum, userId
+	FROM eventReply
+	WHERE eventreplyAnswer=#{eventreplyAnswer}
+	ORDER BY eventreplyNum DESC
+</select>
+
+<select id="eventReplyAnswerCount" parameterType="Integer" resultType="Integer">
+	SELECT NVL(COUNT(*), 0)
+	FROM eventReply WHERE eventreplyAnswer=#{eventreplyAnswer}
+</select>
+</mapper>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="owner.hotelqna">
+
+	<select id="seq" resultType="Integer">
+		SELECT hotelqna_seq.NEXTVAL FROM dual
+	</select>
+
+	<select id="selectHotelQna" parameterType="map" resultType="com.sp.owner.hotelqna.HotelQna">
+		SELECT * FROM(
+	    	SELECT ROWNUM rnum, tb.* FROM(
+		        SELECT qnaNum, qnaTitle, qnaContent, h.userId, userName, hotelId, h.qnaParent, qnaCreated
+                ,DECODE(a1.qnaParent,NULL, 0, 1) count
+		        FROM hotelqna h JOIN member m ON h.userId = m.userId
+                LEFT OUTER JOIN (
+                    SELECT qnaParent FROM hotelqna WHERE qnaParent != 0 AND hotelId = #{hotelId}
+                )a1 ON h.qnaNum = a1.qnaParent
+		        WHERE h.qnaParent = 0 AND hotelId = #{hotelId}
+
+	        	<if test="keyword != null and keyword != '' ">
+	        		AND <include refid="where-list"/>
+	        	</if>
+
+	        	ORDER BY qnaNum DESC
+<![CDATA[
+	        	)tb WHERE ROWNUM <= #{end}
+		)WHERE rnum >= #{start}
+]]>
+	</select>
+	
+	<select id="selectHotelQnas" parameterType="Integer" resultType="com.sp.owner.hotelqna.HotelQna">
+		SELECT qnaNum, qnaTitle, qnaContent, h.userId, userName, hotelId, qnaParent, qnaCreated
+		FROM hotelqna h JOIN member m ON h.userId = m.userId
+		WHERE qnaParent = #{qnaNum} 
+	    ORDER BY qnaNum DESC
+	</select>
+	
+	<select id="dataCount" parameterType="map" resultType="Integer">
+		SELECT NVL(COUNT(*), 0)
+		FROM hotelqna
+		WHERE qnaParent = 0 AND hotelId = #{hotelId}
+	
+       	<if test="keyword != null and keyword != '' ">
+       		AND <include refid="where-list"/>
+       	</if>
+		
+	</select>
+	
+	<insert id="insertHotelQna" parameterType="com.sp.owner.hotelqna.HotelQna">
+		INSERT INTO hotelqna(qnaNum, qnaTitle, qnaContent, userId, hotelId, qnaParent)
+		VALUES(#{qnaNum}, #{qnaTitle}, #{qnaContent}, #{userId}, #{hotelId}, #{qnaParent})
+	</insert>
+	
+	<delete id="deleteHotelQna" parameterType="Integer">
+		DELETE FROM hotelqna WHERE qnaParent = #{qnaNum}
+	</delete>
+	
+	<update id="updateHotelQna" parameterType="com.sp.owner.hotelqna.HotelQna">
+		UPDATE hotelqna SET qnaContent=#{qnaContent} WHERE qnaParent=#{qnaNum} 
+	</update>
+	
+	<sql id="where-list">
+		<if test="condition=='qnaTitle' ">
+			INSTR(qnaTitle, #{keyword}) &gt; 0
+		</if>
+		<if test="condition=='qnaCreated' ">
+			(TO_CHAR(qnaCreated, 'YYYY-MM-DD') = #{keyword}
+			  OR TO_CHAR(qnaCreated, 'YYYYMMDD') = #{keyword})
+		</if>
+		<if test="condition=='userId' ">
+			INSTR(userId, #{keyword}) &gt; 0
+		</if>
+	</sql>
+</mapper>

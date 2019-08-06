@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="user.member">
+	<insert id="insertMember" parameterType="com.sp.user.member.Member">
+		INSERT INTO member(userId, userName, userPwd, birth, userTel, userEmail, enabled)
+		VALUES(#{userId}, #{userName}, #{userPwd}, #{birth}, #{userTel}, #{userEmail}, #{enabled})
+	</insert>
+	
+	<select id="readMember" parameterType="String" resultType="com.sp.user.member.Member">
+		SELECT userId, userName, userPwd, TO_CHAR(birth, 'YYYY-MM-DD') birth , userTel, userEmail, enabled, userCreated, userModified
+		FROM member WHERE userId=#{userId}
+	</select>
+	
+	<update id="updateMember" parameterType="com.sp.user.member.Member">
+		UPDATE member SET userPwd=#{userPwd}, userEmail=#{userEmail, jdbcType=VARCHAR}, 
+                     userTel=#{userTel, jdbcType=VARCHAR}, birth=#{birth, jdbcType=VARCHAR},
+                     userModified=SYSDATE
+        WHERE userId=#{userId}
+	</update>
+	
+	<delete id="deleteMember" parameterType="String">
+		DELETE FROM member WHERE userId=#{userId}
+	</delete>
+	
+	<insert id="insertAuthority" parameterType="com.sp.user.member.Member">
+		INSERT INTO memberAuthority(userId, authority)
+		VALUES(#{userId}, #{authority})
+	</insert>
+</mapper>

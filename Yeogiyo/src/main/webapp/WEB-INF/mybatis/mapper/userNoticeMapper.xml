@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="user.notice">
+	<select id="noticeseq" resultType="Integer">
+		SELECT notice_seq.NEXTVAL FROM dual
+	</select>
+
+	<insert id="insertNotice" parameterType="com.sp.user.notice.Notice">
+		INSERT INTO notice(noticeNum, noticeTitle, noticeContent, notice)
+		VALUES(#{noticeNum}, #{noticeTitle}, #{noticeContent}, #{notice})	
+	</insert>
+	
+	<select id="dataCount" resultType="Integer">
+		SELECT NVL(COUNT(*), 0) FROM notice
+	</select>
+	
+	<select id="listNotice" parameterType="map" resultType="com.sp.user.notice.Notice">
+		SELECT * FROM (
+        SELECT ROWNUM rnum, tb.* FROM (
+             SELECT noticeNum, noticeTitle, noticeContent, notice, noticeCreated
+                FROM notice
+                ORDER BY noticeNum DESC
+<![CDATA[
+	        ) tb WHERE ROWNUM <= ${end}
+	    ) WHERE rnum >= #{start}
+]]>
+	</select>
+	
+	<select id="listNoticeTop" resultType="com.sp.user.notice.Notice">
+		SELECT noticeNum, noticeTitle, noticeContent, notice, 
+			TO_CHAR(noticeCreated, 'YYYY-MM-DD') noticeCreated
+		FROM notice
+		WHERE notice = 1
+		ORDER BY noticeNum DESC
+	</select>
+	
+	<select id="readNotice" parameterType="Integer" resultType="com.sp.user.notice.Notice">
+		SELECT noticeNum, noticeTitle, noticeContent, notice, noticeCreated
+		FROM notice
+		WHERE noticeNum = #{noticeNum}
+	</select>
+	
+	<select id="preReadNotice" parameterType="Integer" resultType="com.sp.user.notice.Notice">
+		SELECT tb.* FROM (
+			SELECT noticeNum, noticeTitle
+				FROM notice
+				WHERE noticeNum &lt; #{noticeNum}
+			ORDER BY noticeNum DESC	
+		) tb WHERE ROWNUM = 1
+		
+	</select>
+	
+	<select id="nextReadNotice" parameterType="integer" resultType="com.sp.user.notice.Notice">
+		SELECT tb.* FROM (
+			SELECT noticeNum, noticeTitle
+				FROM notice
+				WHERE noticeNum &gt; #{noticeNum}
+			ORDER BY noticeNum ASC	
+		) tb WHERE ROWNUM = 1
+	</select>
+	
+	<update id="updateNotice" parameterType="com.sp.user.notice.Notice">
+		UPDATE notice SET noticeTitle=#{noticeTitle},
+			noticeContent=#{noticeContent}, notice=#{notice}
+		WHERE noticeNum=#{noticeNum}	
+	</update>
+	
+	<delete id="deleteNotice" parameterType="Integer">
+		DELETE FROM notice WHERE noticeNum=#{noticeNum}
+	</delete>
+	
+</mapper>

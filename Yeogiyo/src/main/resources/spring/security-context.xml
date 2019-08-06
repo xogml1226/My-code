@@ -1,0 +1,80 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>  
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+   xmlns:beans="http://www.springframework.org/schema/beans"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xmlns:context="http://www.springframework.org/schema/context"
+   xsi:schemaLocation="
+      http://www.springframework.org/schema/beans
+      http://www.springframework.org/schema/beans/spring-beans.xsd
+      http://www.springframework.org/schema/context
+      http://www.springframework.org/schema/context/spring-context.xsd
+      http://www.springframework.org/schema/security
+      http://www.springframework.org/schema/security/spring-security.xsd">
+
+   <context:component-scan base-package="com.sp"/>
+   
+    <!-- 권한이 없는 페이지를 접근할 경우 접근 불가 메시지 출력  -->
+   <http auto-config="true">
+      <!-- spring 4.x때 추가된 옵션으로 ssl을 사용하지 않을 경우 csrf는 disalbed=true로 설정. -->
+      <csrf disabled="true"/>
+      
+      <!-- 스마트 에디터 -->
+      <headers>
+         <frame-options policy="SAMEORIGIN"/>
+         <hsts disabled="true"/>
+      </headers>
+      
+      <!-- 모든 사용자 접근 허용 -->
+      <intercept-url pattern="/index.jsp" access="permitAll"/>
+      <intercept-url pattern="/user/**" access="permitAll"/>
+      <intercept-url pattern="/resource/**" access="permitAll"/>
+      <intercept-url pattern="/uploads/**" access="permitAll"/>
+      <!-- admin -->
+      <intercept-url pattern="/admin/**" access="hasRole('ROLE_ADMIN')"/>
+      
+      <!-- 기타 모든 페이지 -->
+      <intercept-url pattern="/**" access="hasRole('ROLE_USER')"/>
+      
+      <!-- 로그인 폼 -->
+      <form-login login-page="/user/member/login"
+            login-processing-url="/user/member/login"
+            username-parameter="userId"
+            password-parameter="userPwd"
+            authentication-failure-url="/user/member/login?login_error"
+            default-target-url="/"
+            always-use-default-target="false"
+            authentication-success-handler-ref="authenticationSuccessHandler"/>
+      <logout logout-url="/user/member/logout"
+            invalidate-session="true"
+            logout-success-url="/"/>
+      
+      <access-denied-handler error-page="/user/member/noAuthorized"/>
+      
+      <custom-filter ref="ajaxSessionFilter" after="EXCEPTION_TRANSLATION_FILTER"/>
+      
+      <session-management>
+         <concurrency-control max-sessions="1" expired-url="/user/member/expired"/>
+      </session-management>            
+   </http>
+    
+    <beans:bean id="authenticationSuccessHandler" class="com.sp.user.member.MyAuthenticationSuccessHandler"/>
+    
+    <jdbc-user-service data-source-ref="dataSource"
+       id="userService"
+       users-by-username-query="SELECT userId AS username, userPwd AS password, enabled FROM member WHERE userId=?"
+       authorities-by-username-query="SELECT userId AS username, authority FROM memberAuthority WHERE userId=?"/>
+    
+    <!-- 패스워드에 특화된 password hashing function -->
+    <beans:bean id="bcrypt" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"/>
+    
+   <authentication-manager>
+      <authentication-provider user-service-ref="userService">
+         <password-encoder ref="bcrypt"/>
+      </authentication-provider>
+   </authentication-manager>
+   
+   <beans:bean id="ajaxSessionFilter" class="com.sp.user.member.AjaxSessionFilter">
+      <beans:property name="ajaxHeader" value="AJAX"/>
+   </beans:bean>
+
+</beans:beans>

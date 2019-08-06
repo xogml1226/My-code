@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="user.review">
+	<select id="reviewList" parameterType="map" resultType="com.sp.user.review.Review">
+		SELECT * FROM (
+        SELECT ROWNUM rnum, tb.* FROM (
+             SELECT reviewNum, reviewTitle, reviewContent, score, TO_CHAR(reviewCreated,'YYYY-MM-DD') reviewCreated, member.username
+                FROM review JOIN member ON review.userid=member.userid 
+                WHERE member.userId=#{userId}
+                ORDER BY reviewNum DESC
+<![CDATA[
+	        ) tb WHERE ROWNUM <= #{end}
+	    ) WHERE rnum >= #{start}
+]]>
+	</select>
+	
+	<select id="reviewCount" resultType="Integer" parameterType="String">
+		SELECT NVL(COUNT(*),0) reviewCount FROM review JOIN member ON review.userid=member.userid WHERE member.userId=#{userId}
+	</select>
+	
+	<select id="reviewarticle" parameterType="Integer" resultType="com.sp.user.review.Review">
+		 SELECT reviewNum, reviewTitle ,reviewContent, reviewCreated, score, m.username, h.hotelId, m.userId
+         FROM review r JOIN member m ON r.userid=m.userid 
+         JOIN hotel h ON h.hotelId = r.hotelId
+         WHERE reviewNum=#{reviewNum}
+	</select>	
+	
+	<insert id="reviewReport" parameterType="map">
+		INSERT INTO reviewreport(reviewNum, reportContent, hotelId) VALUES(#{reviewNum}, #{reportContent}, #{hotelId})
+	</insert>
+	
+	<select id="checkReview" parameterType="map" resultType="Integer">
+		SELECT NVL(COUNT(*),0) reviewCount 
+		FROM review r JOIN member m ON r.userid=m.userid
+		JOIN hotel h ON r.hotelid = h.hotelId
+		WHERE m.userId= #{userId}
+		AND h.hotelId= #{hotelId}
+		AND r.reservationNum=#{reservationNum}
+	</select>
+	
+	<select id="beforeCreateReview" parameterType="Integer" resultType="com.sp.user.review.Review">
+		SELECT h.hotelId, hotelName, roomName
+		FROM reservation res
+		JOIN reserdetail rd ON rd.reservationNum=res.reservationnum
+		JOIN room r ON r.roomnum=rd.roomnum
+		JOIN hotel h ON h.hotelId=r.hotelId
+		WHERE res.reservationNum=#{reservationNum}
+	</select>
+	
+	<insert id="reviewInsert" parameterType="map">
+		INSERT INTO review(reviewNum,reviewTitle,reviewContent,score,hitCount,userId,reservationNum, hotelId) 
+		VALUES(REVIEW_SEQ.NEXTVAL, #{reviewTitle}, #{reviewContent}, #{score}, 0, #{userId}, #{reservationNum}, #{hotelId})
+	</insert>
+	
+	<update id="reviewUpdate" parameterType="map">
+		UPDATE review SET reviewTitle=#{reviewTitle} , reviewContent=#{reviewContent} WHERE reviewNum=#{reviewNum} AND userId=#{userId}
+	</update>
+	
+	<delete id="reviewDelete" parameterType="Integer">
+		DELETE review WHERE reviewNum = #{reviewNum}
+	</delete>
+	
+	<delete id="reviewReportDelete" parameterType="Integer">
+		DELETE reviewreport WHERE reviewNum=#{reviewNum}
+	</delete>
+
+	<!-- ////////////////////////////////리플 ////////////////////////////////////////////////////////////-->
+
+	<select id="replyList" parameterType="Integer" resultType="com.sp.user.review.Review">
+		SELECT reviewNum, replyNum, userId, replyContent, replyCreated FROM reply WHERE reviewNum=#{reviewNum} ORDER BY replyNum DESC
+	</select>
+
+	<insert id="replyInsert" parameterType="map">
+		INSERT INTO reply(replyNum, reviewNum, userId, replyContent) VALUES (reply_seq.nextval, #{reviewNum}, #{userId}, #{replyContent})
+	</insert>
+	
+	<delete id="replyDelete" parameterType="Integer">
+		DELETE reply WHERE replyNum=#{replyNum}
+	</delete>
+	
+	<delete id="replyAllDelete" parameterType="Integer">
+		DELETE reply WHERE reviewNum=#{reviewNum}
+	</delete>
+	
+	
+</mapper>

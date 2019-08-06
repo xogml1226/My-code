@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="owner.review">
+
+	<select id="seq" resultType="Integer">
+		SELECT REPLY_SEQ.NEXTVAL FROM dual
+	</select>
+
+	<select id="selectReview" parameterType="map" resultType="com.sp.owner.review.Review">
+		SELECT * FROM (
+		    SELECT ROWNUM rnum, tb.* FROM(
+		        SELECT reviewNum, reviewTitle, reviewContent, TO_CHAR(reviewCreated,'YYYY-MM-DD') reviewCreated, score, hitCount, userId, reservationNum, hotelId
+		        FROM review
+		        WHERE hotelId = #{hotelId}
+		        
+	        	<if test="keyword != null and keyword != '' ">
+	        		AND <include refid="where-list"/>
+	        	</if>
+
+	        	ORDER BY reviewNum DESC
+<![CDATA[
+	        	)tb WHERE ROWNUM <= #{end}
+		)WHERE rnum >= #{start}
+]]>
+	</select>
+	
+	<select id="selectReviewOne" parameterType="Integer" resultType="com.sp.owner.review.Review">
+		SELECT reviewNum, reviewTitle, reviewContent, reviewCreated, score, hitCount, userId, reservationNum, hotelId
+		FROM review
+		WHERE reviewNum = #{reviewNum}
+	</select>
+	
+	<select id="selectReply" parameterType="Integer" resultType="com.sp.owner.review.Reply">
+		SELECT replyNum, reviewNum, userId, replyContent, replyCreated
+		FROM reply
+		WHERE reviewNum = #{reviewNum}
+		ORDER BY replyNum
+	</select>
+	
+	<select id="dataCount" parameterType="map" resultType="Integer">
+		SELECT NVL(COUNT(*), 0)
+		FROM review
+		WHERE hotelId = #{hotelId}
+		
+       	<if test="keyword != null and keyword != '' ">
+       		AND <include refid="where-list"/>
+       	</if>
+	</select>
+	
+	<insert id="insertReport" parameterType="map">
+		INSERT INTO reviewreport (reviewNum, reportContent, hotelId)
+		VALUES(#{reviewNum}, #{reportContent}, #{hotelId})
+	</insert>
+	
+	<insert id="insertReply" parameterType="com.sp.owner.review.Reply">
+		INSERT INTO reply (replyNum, reviewNum, userId, replyContent)
+		VALUES(#{replyNum}, #{reviewNum}, #{userId}, #{replyContent})
+	</insert>
+	
+	<delete id="deleteReply" parameterType="Integer">
+		DELETE FROM reply WHERE replyNum = #{replyNum}
+	</delete>
+	
+	<update id="updateReply" parameterType="map">
+		UPDATE reply SET replyContent=#{replyContent} WHERE replyNum = #{replyNum}
+	</update>
+	
+	<sql id="where-list">
+		<if test="condition=='reviewTitle' ">
+			INSTR(reviewTitle, #{keyword}) &gt; 0
+		</if>
+		<if test="condition=='reviewCreated' ">
+			(TO_CHAR(reviewCreated, 'YYYY-MM-DD') = #{keyword}
+			  OR TO_CHAR(reviewCreated, 'YYYYMMDD') = #{keyword})
+		</if>
+		<if test="condition=='userId' ">
+			INSTR(userId, #{keyword}) &gt; 0
+		</if>
+	</sql>
+</mapper>

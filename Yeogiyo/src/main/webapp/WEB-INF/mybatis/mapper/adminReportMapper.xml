@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="admin.report">
+	<sql id="where-list">
+		<if test="condition=='all'">
+			(INSTR(reviewTitle, #{keyword}) &gt; 0
+				OR DBMS_LOB.INSTR(reviewContent, #{keyword}) &gt; 0)
+		</if>
+		<if test="condition=='hotelName'">
+			INSTR(hotelName, #{keyword}) &gt; 0
+		</if>
+		<if test="condition=='userId'">
+			r.userId=#{userId}
+		</if>
+	</sql>
+	
+	<select id="dataCount" parameterType="map" resultType="Integer">
+		SELECT NVL(COUNT(*), 0)
+		FROM reviewreport rr
+		JOIN review r ON rr.reviewNum=r.reviewNum
+		JOIN hotel h ON rr.hotelId=h.hotelId
+		<where>
+			<if test="keyword !=null and keyword != ''">
+				<include refid="where-list"/>
+			</if>
+		</where>
+	</select>
+	
+	<select id="listReport" parameterType="map" resultType="com.sp.admin.report.Report">
+		SELECT * FROM (
+		    SELECT ROWNUM rnum, tb.* FROM (
+			     SELECT rr.reviewNum, reviewTitle, hotelName, r.userId, 
+					   TO_CHAR(reviewCreated, 'YYYY-MM-DD') reviewCreated
+			        FROM reviewreport rr
+					JOIN review r ON rr.reviewNum=r.reviewNum
+					JOIN hotel h ON rr.hotelId=h.hotelId
+                    <where>
+                         <if test="keyword != null and keyword != ''">
+			                  <include refid="where-list"/>
+		                 </if>
+	                </where>
+	                ORDER BY rr.reviewNum DESC
+	<![CDATA[
+	        ) tb WHERE ROWNUM <= #{end}
+	    ) WHERE rnum >= #{start}
+	]]>
+	</select>
+	
+	<select id="readReport" parameterType="Integer" resultType="com.sp.admin.report.Report">
+		SELECT rr.reviewNum, reviewTitle, r.userId, score, reviewCreated, hotelName, 
+		reviewContent, reportContent
+		FROM reviewreport rr
+		JOIN review r ON rr.reviewNum=r.reviewNum
+		JOIN hotel h ON rr.hotelId=h.hotelId
+		WHERE rr.reviewNum=#{reviewNum}
+	</select>
+	
+	<select id="preReadReport" parameterType="map" resultType="com.sp.admin.report.Report">
+		SELECT * FROM (
+			SELECT rr.reviewNum, reviewTitle
+			FROM reviewreport rr
+			JOIN review r ON rr.reviewNum=r.reviewNum
+				<where>
+	                <if test="keyword != null and keyword != ''">
+	                  <include refid="where-list"/>
+	                </if>
+	                AND (rr.reviewNum &lt; #{reviewNum})
+	            </where>
+			ORDER BY rr.reviewNum DESC
+		) tb WHERE ROWNUM=1	
+	</select>
+	
+	<select id="nextReadReport" parameterType="map" resultType="com.sp.admin.report.Report">
+		SELECT * FROM (
+			SELECT rr.reviewNum, reviewTitle
+			FROM reviewreport rr
+			JOIN review r ON rr.reviewNum=r.reviewNum
+				<where>
+	                <if test="keyword != null and keyword != ''">
+	                  <include refid="where-list"/>
+	                </if>
+	                AND (rr.reviewNum &gt; #{reviewNum})
+	            </where>
+			ORDER BY rr.reviewNum ASC
+		) tb WHERE ROWNUM=1	
+	</select>
+	
+	<delete id="deleteReport" parameterType="Integer">
+		DELETE FROM reviewReport WHERE reviewNum=#{reviewNum}
+	</delete>
+	<delete id="deleteReply" parameterType="Integer">
+		DELETE FROM reply WHERE reviewNum=#{reviewNum}
+	</delete>
+	<delete id="deleteReviewLike" parameterType="Integer">
+		DELETE FROM reviewLike WHERE reviewNum=#{reviewNum}
+	</delete>
+	<delete id="deleteReview" parameterType="Integer">
+		DELETE FROM review WHERE reviewNum=#{reviewNum}
+	</delete>
+</mapper>

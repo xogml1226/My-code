@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="admin.granted">
+	<select id="dataCount" resultType="Integer">
+		SELECT NVL(COUNT(*), 0) FROM hotel WHERE granted=0
+	</select>
+	
+	<select id="listHotel" parameterType="map" resultType="com.sp.admin.main.Granted">
+		SELECT * FROM (
+			SELECT ROWNUM rnum, tb.* FROM (
+				SELECT userName, hotelId, hotelName, type
+			FROM hotel h
+			JOIN member m ON h.userId=m.userId
+			JOIN hotelType ht ON h.typeNum=ht.typeNum
+			WHERE granted=0
+<![CDATA[			
+			) tb WHERE ROWNUM <= #{end}
+		) WHERE rnum >= #{start}
+]]>		
+	</select>
+	
+	<select id="readHotel" parameterType="String" resultType="com.sp.admin.main.Granted">
+		SELECT hotelName, businessNum, hotelTel, detail, type, mainPhoto, addr1, addr2,
+		userName, userTel, userEmail, h.userId, h.hotelId
+		FROM hotel h
+		JOIN member m ON h.userId=m.userId
+		JOIN hotelDetail hd ON h.hotelId=hd.hotelId
+		JOIN hotelType ht ON h.typeNum=ht.typeNum
+		WHERE h.hotelId=#{hotelId}
+	</select>
+	
+	<update id="updateGranted" parameterType="String">
+		UPDATE hotel SET granted = 1 WHERE hotelId=#{hotelId}
+	</update>
+	<update id="updateEnabled" parameterType="String">
+		UPDATE member SET enabled = 2 WHERE userId=#{userId}
+	</update>
+	
+	
+</mapper>

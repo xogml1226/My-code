@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="user.reservation">
+		
+		<select id="getroomnum" parameterType="map" resultType="Integer">
+			SELECT MIN(r.roomnum) roomnum FROM room r JOIN roomdetail ro ON r.roomnum=ro.roomnum
+			WHERE r.roomnum NOT IN (select roomnum FROM reserdetail
+<![CDATA[      		WHERE (TO_DATE(#{checkoutday}) > TO_DATE(TO_CHAR(checkinday, 'YYYY-MM-DD')) AND TO_DATE(#{checkoutday}) <= TO_DATE(TO_CHAR(checkoutday, 'YYYY-MM-DD')))
+      		OR (TO_DATE(#{checkinday}) >= TO_DATE(TO_CHAR(checkinday, 'YYYY-MM-DD')) AND TO_DATE(#{checkoutday}) <= TO_DATE(TO_CHAR(checkoutday, 'YYYY-MM-DD')))
+      		OR (TO_DATE(#{checkoutday}) >= TO_DATE(TO_CHAR(checkoutday, 'YYYY-MM-DD')) AND TO_DATE(#{checkinday}) < TO_DATE(TO_CHAR(checkoutday, 'YYYY-MM-DD')))
+]]>
+      		)
+      		AND roomtype=#{roomtype}
+	        AND roomprice=#{roomprice}
+	        AND maxpeople=#{maxpeople}
+	        AND roomdetails=#{roomdetails}
+	        AND roomstatus=#{roomstatus}
+		</select>
+		
+		<select id="selectHotelName" parameterType="map" resultType="String">
+			SELECT hotelName FROM hotel WHERE hotelId=#{hotelId}
+		</select>
+		
+		<select id="showresdetail" parameterType="Integer" resultType="com.sp.user.reservation.Reservation">
+			SELECT h.hotelName,roomname, stair, roomtype, maxpeople, roomstatus, roomprice, rd.roomdetails 
+			FROM room r
+			JOIN roomdetail rd ON rd.roomnum=r.roomnum
+			JOIN hotel h ON h.hotelId = r.hotelId
+			WHERE rd.roomnum=#{roomnum}
+		</select>
+		
+		<update id="insertReservation" parameterType="map">
+			INSERT ALL
+				INTO reservation(reservationNum, totprice, checkmember, userName, userTel, userEmail, hotelId) VALUES(#{reservationNum}, #{tot}, 1, #{userName}, #{userTel}, #{userEmail},#{hotelId})
+				INTO reserdetail(resdetailNum, peoplecount, restype, checkinday, checkoutday,price, roomnum, reservationNum) VALUES(RESERDETAIL_SEQ.nextval, #{peoplecount},'카드', #{checkinday}, #{checkoutday}, #{tot}, #{roomnum}, #{reservationNum})
+				INTO memberreser(reservationNum, userid) VALUES (#{reservationNum}, #{userId})
+				INTO pay(reservationNum,  paytype) VALUES(#{reservationNum} ,'카드')
+			SELECT * FROM DUAL	 
+		</update>
+		
+		<update id="noMemberinsertReservation" parameterType="map">
+			INSERT ALL
+				INTO reservation(reservationNum, totprice, checkmember, userName, userTel, userEmail, hotelId) VALUES(#{reservationNum}, #{tot}, 0, #{userName}, #{userTel}, #{userEmail},#{hotelId})
+				INTO reserdetail(resdetailNum, peoplecount, restype, checkinday, checkoutday,price, roomnum, reservationNum) VALUES(RESERDETAIL_SEQ.nextval, #{peoplecount},'카드', #{checkinday}, #{checkoutday}, #{tot}, #{roomnum}, #{reservationNum})
+				INTO pay(reservationNum,  paytype) VALUES(#{reservationNum} ,'카드')
+			SELECT * FROM DUAL	 
+		</update>	
+		
+		<select id="getreservationNum" resultType="Integer">
+			SELECT RESERVATION_SEQ.NEXTVAL reservationNum FROM DUAL
+		</select>
+		
+		<insert id="addopt" parameterType="map">
+			INSERT INTO reseropt(resoptNum, resoptuserCount, resoptPrice, optNum, reservationNum) 
+			VALUES (RESEROPT_SEQ.NEXTVAl, #{optCount}, #{total}, #{optNum}, #{reservationNum})			
+		</insert>
+</mapper>

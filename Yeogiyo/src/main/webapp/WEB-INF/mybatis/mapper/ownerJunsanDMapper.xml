@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="owner.jungsanD">
+	<update id="insertJungsan" parameterType="map">
+        INSERT INTO jungsand (jungsanNum, jungsanCreated, hotelId, paydate, paytype, roomnum, roomname, peopleCount, checkinDay, checkoutDay, price)
+        SELECT jungsanD_seq.NEXTVAL jungsanNum , #{day} jungsanCreated ,r.hotelId, p.paydate, p.paytype, d.roomnum, m.roomname, d.peopleCount, d.checkinDay, d.checkoutDay, d.price
+	    FROM reserdetail d JOIN reservation r 
+	        ON d.reservationnum = r.reservationnum
+	        JOIN pay p
+	        ON p.reservationnum = r.reservationnum
+	        JOIN room m
+	        ON m.roomnum = d.roomnum
+	    WHERE r.hotelId = #{hotelId}
+	    AND (TO_CHAR(paydate, 'YYYY-MM-DD') = #{day} OR TO_CHAR(checkinDay, 'YYYY-MM-DD') = #{day})
+	    AND TO_DATE(TO_CHAR(checkinDay, 'YYYY-MM-DD')) <![CDATA[ <= ]]> TO_DATE(#{day})
+	</update>
+	
+	<delete id="deleteJungsan" parameterType="map">
+		DELETE FROM jungsanD WHERE hotelId = #{hotelId} AND jungsanCreated = #{day} 
+	</delete>
+	
+	<select id="selectJunsan" parameterType="map" resultType="com.sp.owner.jungsanD.JungsanD">
+		SELECT jungsanNum, hotelId, payType, roomNum, roomName, peopleCount, price
+		        ,TO_CHAR(jungsanCreated,'YYYY-MM-DD') jungsanCreated
+		        ,TO_CHAR(payDate,'YYYY-MM-DD') payDate
+		        ,TO_CHAR(checkinDay,'YYYY-MM-DD') checkinDay
+		        ,TO_CHAR(checkoutDay,'YYYY-MM-DD') checkoutDay
+		FROM jungsand
+		WHERE hotelId = #{hotelId}
+        AND jungsanCreated = #{day} 
+        ORDER BY paydate
+	</select>
+	
+	<select id="selectDay" parameterType="map" resultType="com.sp.owner.jungsanD.JungsanD">
+        SELECT a1.dates payDate, NVL(price,0) price, NVL(peopleCount,0) peopleCount FROM
+		(
+		    SELECT LEVEL dates
+		    FROM dual CONNECT BY LEVEL <![CDATA[ <= ]]> (LAST_DAY(#{day}) - TRUNC(to_date(#{day}),'MM') + 1)
+		)a1
+		LEFT OUTER JOIN 
+		(
+		    select TO_CHAR(jungsanCreated,'DD') dates, jungsanCreated, SUM(price) price, SUM(peoplecount) peopleCount from jungsanD
+		    where jungsanCreated between TRUNC(to_date(#{day}),'MM') AND LAST_DAY(#{day})
+		    AND hotelId = #{hotelId}
+		    group by jungsanCreated
+		    order by jungsanCreated
+		)a2
+		ON a1.dates = a2.dates
+		ORDER BY a1.dates
+	</select>
+</mapper>
